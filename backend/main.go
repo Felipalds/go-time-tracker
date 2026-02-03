@@ -32,7 +32,7 @@ func main() {
 	router := routes.SetupRoutes(logger)
 
 	// Start HTTP server
-	port := "8080"
+	port := "8085"
 	if envPort := os.Getenv("PORT"); envPort != "" {
 		port = envPort
 	}

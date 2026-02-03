@@ -4,6 +4,7 @@ import (
 	"github.com/Felipalds/go-pomodoro/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"go.uber.org/zap"
 )
 
@@ -16,6 +17,15 @@ func SetupRoutes(logger *zap.Logger) *chi.Mux {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
+
+	// CORS
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
 	// Initialize handlers
 	categoryHandler := &handlers.CategoryHandler{Logger: logger}
