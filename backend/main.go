@@ -1,7 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/Felipalds/go-pomodoro/database"
+	"github.com/Felipalds/go-pomodoro/routes"
 	"go.uber.org/zap"
 )
 
@@ -13,7 +20,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("Starting Time Tracker application...")
+	logger.Info("Starting Time Tracker API...")
 
 	// Initialize database
 	if err := database.Initialize(logger); err != nil {
@@ -21,9 +28,38 @@ func main() {
 	}
 	defer database.Close(logger)
 
-	logger.Info("Application started successfully")
-	logger.Info("Database is ready. Press Ctrl+C to exit.")
+	// Setup routes
+	router := routes.SetupRoutes(logger)
 
-	// Keep the application running
-	select {}
+	// Start HTTP server
+	port := "8080"
+	if envPort := os.Getenv("PORT"); envPort != "" {
+		port = envPort
+	}
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%s", port),
+		Handler: router,
+	}
+
+	// Graceful shutdown
+	go func() {
+		logger.Info("Server starting", zap.String("port", port))
+		logger.Info("API available at", zap.String("url", fmt.Sprintf("http://localhost:%s/api", port)))
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Server failed", zap.Error(err))
+		}
+	}()
+
+	// Wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("Shutting down server...")
+	if err := server.Close(); err != nil {
+		logger.Error("Server shutdown error", zap.Error(err))
+	}
+
+	logger.Info("Server stopped gracefully")
 }
