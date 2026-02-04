@@ -43,9 +43,7 @@ export const CircularTimer: React.FC<CircularTimerProps> = ({
   const cycleTime = 25 * 60;
   const progress = (elapsed % cycleTime) / cycleTime;
 
-  const size = "clamp(320px, 38vw, 520px)";
-  const svgSize = `calc(${size} - 20px)`;
-  const radius = 45; // percentage-based for responsive
+  const radius = 46;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - progress);
 
@@ -71,11 +69,7 @@ export const CircularTimer: React.FC<CircularTimerProps> = ({
         onClick={handleClick}
         style={{ cursor: isStarting ? "wait" : "pointer" }}
       >
-        <svg
-          className="progress-ring"
-          viewBox="0 0 100 100"
-          style={{ width: svgSize, height: svgSize }}
-        >
+        <svg className="progress-ring" viewBox="0 0 100 100">
           <circle className="progress-ring-circle" cx="50" cy="50" r={radius} />
           <circle
             className="progress-ring-progress"

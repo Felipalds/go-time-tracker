@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { CircularTimer } from "../components/molecules/CircularTimer";
+import { ResumeSection } from "../components/organisms/ResumeSection";
 
 const API_URL = "http://localhost:8085/api";
 
@@ -183,169 +184,194 @@ export const HomePage: React.FC = () => {
   );
 
   return (
-    <div className="stage-wrapper bg-primary">
-      <div className="main-container">
-        {/* Header */}
-        <h1 className="text-2xl text-primary tracking-widest">pomodoro</h1>
+    <div className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth">
+      {/* Section 1: Timer */}
+      <section className="h-screen snap-start snap-always flex items-center justify-content p-4">
+        <div className="w-full max-w-4xl mx-auto h-full flex flex-col items-center justify-center gap-8 relative">
+          {/* Header */}
+          <h1 className="text-2xl text-slate-50 tracking-widest">
+            Gemini time tracker
+          </h1>
 
-        {/* Circular Timer */}
-        <CircularTimer
-          isRunning={!!activeTimer}
-          isStarting={isStarting}
-          activityName={activeTimer?.activity_name || null}
-          startTime={activeTimer ? new Date(activeTimer.start_time) : null}
-          onStart={handlePlay}
-          onStop={handleStopTimer}
-        />
+          {/* Circular Timer */}
+          <CircularTimer
+            isRunning={!!activeTimer}
+            isStarting={isStarting}
+            activityName={activeTimer?.activity_name || null}
+            startTime={activeTimer ? new Date(activeTimer.start_time) : null}
+            onStart={handlePlay}
+            onStop={handleStopTimer}
+          />
 
-        {/* Form - Only show when not running */}
-        {!activeTimer && (
-          <div className="form-container">
-            {/* Activity Name */}
-            <input
-              type="text"
-              className="input-dark"
-              placeholder="What are you working on?"
-              value={activityName}
-              onChange={(e) => setActivityName(e.target.value)}
-              disabled={isStarting}
-            />
-
-            {/* Category */}
-            <div className="relative">
+          {/* Form - Only show when not running */}
+          {!activeTimer && (
+            <div className="w-full max-w-sm flex flex-col gap-3 bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5 backdrop-blur-xl z-50">
+              {/* Activity Name */}
               <input
                 type="text"
-                className="input-dark"
-                placeholder="Category (e.g., Work, Study)"
-                value={mainCategory}
-                onChange={(e) => setMainCategory(e.target.value)}
+                className="w-full bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 py-3 text-slate-50 text-sm placeholder:text-slate-600 focus:outline-none focus:border-indigo-400/40 focus:bg-white/[0.04]"
+                placeholder="What are you working on?"
+                value={activityName}
+                onChange={(e) => setActivityName(e.target.value)}
                 disabled={isStarting}
               />
-              {mainCategory && filteredCategories.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-card rounded-lg overflow-hidden">
-                  {filteredCategories.slice(0, 5).map((cat, i) => (
-                    <div
-                      key={i}
-                      className="px-4 py-3 text-secondary hover:bg-secondary hover:text-primary cursor-pointer"
-                      style={{ fontSize: "14px" }}
-                      onClick={() => setMainCategory(cat)}
-                    >
-                      {cat}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            {/* Tags */}
-            <div className="relative">
-              <input
-                type="text"
-                className="input-dark"
-                placeholder="Add tags..."
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && tagInput) {
-                    e.preventDefault();
-                    addTag(tagInput);
-                  }
-                }}
-                disabled={isStarting}
-              />
-              {tagInput && filteredTags.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-card rounded-lg overflow-hidden">
-                  {filteredTags.slice(0, 5).map((tag, i) => (
-                    <div
+              {/* Category */}
+              <div className="relative z-50">
+                <input
+                  type="text"
+                  className="w-full bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 py-3 text-slate-50 text-sm placeholder:text-slate-600 focus:outline-none focus:border-indigo-400/40 focus:bg-white/[0.04]"
+                  placeholder="Category (e.g., Work, Study)"
+                  value={mainCategory}
+                  onChange={(e) => setMainCategory(e.target.value)}
+                  disabled={isStarting}
+                />
+                {mainCategory && filteredCategories.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
+                    {filteredCategories.slice(0, 5).map((cat, i) => (
+                      <div
+                        key={i}
+                        className="px-4 py-2 text-slate-400 text-sm hover:bg-slate-800 hover:text-slate-50 cursor-pointer"
+                        onClick={() => setMainCategory(cat)}
+                      >
+                        {cat}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tags */}
+              <div className="relative z-40">
+                <input
+                  type="text"
+                  className="w-full bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 py-3 text-slate-50 text-sm placeholder:text-slate-600 focus:outline-none focus:border-indigo-400/40 focus:bg-white/[0.04]"
+                  placeholder="Add tags..."
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && tagInput) {
+                      e.preventDefault();
+                      addTag(tagInput);
+                    }
+                  }}
+                  disabled={isStarting}
+                />
+                {tagInput && filteredTags.length > 0 && (
+                  <div className="absolute z-40 w-full mt-1 bg-slate-900 border border-white/10 rounded-lg overflow-hidden">
+                    {filteredTags.slice(0, 5).map((tag, i) => (
+                      <div
+                        key={i}
+                        className="px-4 py-2 text-slate-400 text-sm hover:bg-slate-800 hover:text-slate-50 cursor-pointer"
+                        onClick={() => addTag(tag)}
+                      >
+                        {tag}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Tags */}
+              {selectedTags.length > 0 && (
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {selectedTags.map((tag, i) => (
+                    <span
                       key={i}
-                      className="px-4 py-3 text-secondary hover:bg-secondary hover:text-primary cursor-pointer"
-                      style={{ fontSize: "14px" }}
-                      onClick={() => addTag(tag)}
+                      className="bg-pink-500/10 text-pink-400 border border-pink-500/20 px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-2"
                     >
                       {tag}
-                    </div>
+                      <button
+                        onClick={() => removeTag(tag)}
+                        className="hover:text-white"
+                        disabled={isStarting}
+                      >
+                        ×
+                      </button>
+                    </span>
                   ))}
                 </div>
               )}
             </div>
+          )}
 
-            {/* Selected Tags */}
-            {selectedTags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {selectedTags.map((tag, i) => (
-                  <span
-                    key={i}
-                    className="badge-accent badge flex items-center gap-2"
-                    style={{ fontSize: "12px" }}
+          {/* Scroll hint - positioned at bottom */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-600 text-xs font-medium tracking-widest opacity-60 animate-bounce">
+            <span>DATA</span>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 2: Data */}
+      <section className="min-h-screen snap-start snap-always flex items-center justify-center p-4 py-12">
+        <div className="w-full max-w-xl flex flex-col items-center gap-12">
+          {/* Resume Section */}
+          <div className="w-full flex flex-col items-center">
+            <h2 className="text-slate-400 mb-6 tracking-widest text-sm">
+              RESUME
+            </h2>
+            <ResumeSection />
+          </div>
+
+          {/* Activities List */}
+          {activities.length > 0 && (
+            <div className="w-full">
+              <h2 className="text-slate-400 mb-6 tracking-widest text-sm">
+                RECENT ACTIVITIES
+              </h2>
+              <div className="flex flex-col gap-4 w-full">
+                {activities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className={`w-full bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 cursor-pointer hover:bg-white/[0.04] hover:border-white/10 transition-all ${isStarting ? "opacity-50 pointer-events-none" : ""}`}
+                    onClick={() => handleActivityClick(activity.id)}
                   >
-                    {tag}
-                    <button
-                      onClick={() => removeTag(tag)}
-                      className="hover:text-white"
-                      disabled={isStarting}
-                    >
-                      ×
-                    </button>
-                  </span>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-slate-50 mb-2 text-sm">
+                          {activity.name}
+                        </h3>
+                        <p className="text-slate-600 text-xs">
+                          {activity.main_category?.name}
+                          {activity.sub_category &&
+                            ` / ${activity.sub_category.name}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-indigo-400 text-base">
+                          {activity.total_formatted || "0s"}
+                        </div>
+                        {activity.tags && activity.tags.length > 0 && (
+                          <div className="flex gap-1 mt-2 justify-end">
+                            {activity.tags.slice(0, 2).map((tag, i) => (
+                              <span
+                                key={i}
+                                className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded text-xs font-semibold"
+                              >
+                                {tag.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Activities List */}
-        {activities.length > 0 && (
-          <div className="activities-section">
-            <h2
-              className="text-secondary mb-6 tracking-widest"
-              style={{ fontSize: "14px" }}
-            >
-              RECENT ACTIVITIES
-            </h2>
-            <div className="flex flex-col gap-4 w-full">
-              {activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className={`w-full card-dark cursor-pointer flex justify-between items-center ${isStarting ? "opacity-50 pointer-events-none" : ""}`}
-                  onClick={() => handleActivityClick(activity.id)}
-                >
-                  <div>
-                    <h3
-                      className="text-primary mb-2"
-                      style={{ fontSize: "14px" }}
-                    >
-                      {activity.name}
-                    </h3>
-                    <p className="text-muted" style={{ fontSize: "11px" }}>
-                      {activity.main_category?.name}
-                      {activity.sub_category &&
-                        ` / ${activity.sub_category.name}`}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-accent" style={{ fontSize: "16px" }}>
-                      {activity.total_formatted || "0s"}
-                    </div>
-                    {activity.tags && activity.tags.length > 0 && (
-                      <div className="flex gap-1 mt-2 justify-end">
-                        {activity.tags.slice(0, 2).map((tag, i) => (
-                          <span
-                            key={i}
-                            className="badge"
-                            style={{ fontSize: "9px" }}
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap");
 
-/* Task 1: Global Reset */
+/* Global Reset */
 html,
 body,
 #root {
@@ -11,8 +11,8 @@ body,
 
 :root {
     /* Modern SaaS Dark Theme */
-    --color-bg-primary: #030712; /* Almost Black (Rich Navy) */
-    --color-bg-secondary: #0f172a; /* Deep Slate */
+    --color-bg-primary: #030712;
+    --color-bg-secondary: #0f172a;
 
     /* Glassmorphism Layers */
     --color-glass-border: rgba(255, 255, 255, 0.08);
@@ -26,17 +26,16 @@ body,
         #a855f7 50%,
         #ec4899 100%
     );
-    --color-accent: #818cf8; /* Indigo */
+    --color-accent: #818cf8;
     --color-accent-glow: rgba(99, 102, 241, 0.5);
 
     /* Text */
-    --color-text-primary: #f8fafc; /* Slate 50 */
-    --color-text-secondary: #94a3b8; /* Slate 400 */
-    --color-text-muted: #475569; /* Slate 600 */
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #94a3b8;
+    --color-text-muted: #475569;
 }
 
 * {
-    /* Switch to clean sans-serif for pro look */
     font-family:
         "Inter",
         -apple-system,
@@ -51,8 +50,6 @@ body,
 body {
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
-
-    /* Ambient Lighting Effects */
     background-image:
         radial-gradient(
             circle at 15% 50%,
@@ -67,45 +64,88 @@ body {
     background-attachment: fixed;
 }
 
-/* Task 1: Stage Wrapper */
-.stage-wrapper {
-    min-height: 100vh;
+/* Scroll Snap Container */
+.scroll-container {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+
+.scroll-section {
+    height: 100vh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: clamp(16px, 4vw, 48px);
 }
 
-/* Task 1: Main Container */
-.main-container {
+.section-content {
     width: min(980px, 92vw);
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 40px;
+    justify-content: center;
+    gap: 32px;
+    position: relative;
 }
 
-/* Task 1: Timer Circle - The "Dashboard Gauge" */
+.data-section {
+    gap: 48px;
+    padding-top: 40px;
+    padding-bottom: 40px;
+    height: auto;
+    min-height: 100vh;
+}
+
+/* Scroll Hint */
+.scroll-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    opacity: 0.6;
+    animation: bounce-soft 2s ease-in-out infinite;
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+}
+
+@keyframes bounce-soft {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(6px);
+    }
+}
+
+/* Timer Circle - Fixed alignment */
 .timer-circle {
-    --size: clamp(320px, 38vw, 520px);
+    --size: clamp(280px, 35vw, 420px);
     position: relative;
     width: var(--size);
     height: var(--size);
     border-radius: 50%;
-
-    /* Glassmorphism Base */
     background: linear-gradient(
         145deg,
         rgba(17, 24, 39, 0.8),
         rgba(0, 0, 0, 0.9)
     );
     border: 1px solid var(--color-glass-border);
-
-    /* Outer Glow */
     box-shadow:
         0 0 60px -15px rgba(99, 102, 241, 0.2),
-        /* Soft blue glow */ inset 0 0 40px rgba(0, 0, 0, 0.8);
-
+        inset 0 0 40px rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -113,18 +153,11 @@ body {
     backdrop-filter: blur(20px);
 }
 
-.timer-circle::before {
-    content: "";
-    position: absolute;
-    width: calc(var(--size) - 2px);
-    height: calc(var(--size) - 2px);
-    border-radius: 50%;
-    background: transparent;
-    z-index: -1;
-}
-
 .timer-content {
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 10;
     text-align: center;
     display: flex;
@@ -133,65 +166,101 @@ body {
 }
 
 .timer-time {
-    font-size: clamp(3.5rem, 7vw, 5.5rem);
-    font-weight: 200; /* Thin font looks very modern */
+    font-size: clamp(3rem, 6vw, 4.5rem);
+    font-weight: 200;
     color: transparent;
     background: linear-gradient(180deg, #fff 20%, #94a3b8 100%);
     -webkit-background-clip: text;
     background-clip: text;
-    letter-spacing: -2px; /* Tight tracking is modern */
+    letter-spacing: -2px;
     line-height: 1;
     filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1));
 }
 
 .timer-label {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: var(--color-text-secondary);
-    margin-top: 1.5rem;
+    margin-top: 1rem;
     text-transform: uppercase;
     letter-spacing: 2px;
     background: rgba(255, 255, 255, 0.05);
-    padding: 6px 16px;
+    padding: 5px 14px;
     border-radius: 20px;
     border: 1px solid var(--color-glass-border);
 }
 
-/* Progress Ring */
+/* Progress Ring - Centered */
 .progress-ring {
     position: absolute;
-    top: 0;
-    left: 0;
-    transform: rotate(-90deg);
-    width: 100%;
-    height: 100%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    width: calc(100% - 24px);
+    height: calc(100% - 24px);
     pointer-events: none;
-    padding: 10px;
 }
 
 .progress-ring-circle {
     fill: transparent;
     stroke: rgba(255, 255, 255, 0.03);
-    stroke-width: 4; /* Thin lines are elegant */
+    stroke-width: 3;
 }
 
 .progress-ring-progress {
     fill: transparent;
-    stroke: url(#gradient); /* You will need an SVG def for this, see note below. Fallback: #6366f1 */
-    stroke: #818cf8; /* Fallback color if no gradient def */
-    stroke-width: 4;
+    stroke: #818cf8;
+    stroke-width: 3;
     stroke-linecap: round;
     transition: stroke-dashoffset 0.3s ease;
     filter: drop-shadow(0 0 8px var(--color-accent-glow));
 }
 
-/* Task 1: Form Container - Glass Panel */
+/* Glass Form - Smaller & More Transparent */
+.form-container-glass {
+    width: min(380px, 88vw);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 20px;
+    backdrop-filter: blur(16px);
+    position: relative;
+    z-index: 100;
+}
+
+.input-glass {
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-weight: 400;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.input-glass:focus {
+    outline: none;
+    border-color: rgba(129, 140, 248, 0.4);
+    background-color: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+}
+
+.input-glass::placeholder {
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+/* Old form container (keep for backwards compat) */
 .form-container {
     width: min(560px, 92vw);
     display: flex;
     flex-direction: column;
     gap: 20px;
-
     background: var(--color-glass-bg);
     border: 1px solid var(--color-glass-border);
     border-radius: 24px;
@@ -200,7 +269,6 @@ body {
     box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
 }
 
-/* Task 1: Input Styles */
 .input-dark {
     background-color: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--color-glass-border);
@@ -223,7 +291,7 @@ body {
     color: var(--color-text-muted);
 }
 
-/* Task 1: Button Styles - "Primary Action" */
+/* Button Styles */
 .btn-primary {
     background: var(--gradient-primary);
     color: white;
@@ -234,7 +302,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 10px 20px -5px rgba(168, 85, 247, 0.4); /* Glow matching gradient */
+    box-shadow: 0 10px 20px -5px rgba(168, 85, 247, 0.4);
     position: relative;
     overflow: hidden;
 }
@@ -244,34 +312,13 @@ body {
     box-shadow: 0 15px 30px -5px rgba(168, 85, 247, 0.5);
 }
 
-.btn-primary::after {
-    /* Shine effect */
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-    );
-    transition: 0.5s;
-}
-
-.btn-primary:hover::after {
-    left: 100%;
-}
-
 .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     box-shadow: none;
 }
 
-/* Card styles - List Items */
+/* Card styles */
 .card-dark {
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--color-glass-border);
@@ -323,5 +370,54 @@ body {
 
 .activities-section {
     width: 100%;
-    max-width: min(980px, 92vw);
+    max-width: min(560px, 92vw);
+}
+
+/* Resume Section */
+.resume-section {
+    width: 100%;
+    max-width: min(560px, 92vw);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 24px;
+    padding: 24px 32px;
+    backdrop-filter: blur(12px);
+}
+
+.period-btn {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--color-glass-border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.period-btn:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--color-text-primary);
+}
+
+.period-btn.active {
+    background: var(--gradient-primary);
+    border-color: transparent;
+    color: white;
+    box-shadow: 0 4px 12px -2px rgba(168, 85, 247, 0.4);
+}
+
+.progress-bar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
 }

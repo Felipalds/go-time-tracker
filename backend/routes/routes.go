@@ -32,6 +32,7 @@ func SetupRoutes(logger *zap.Logger) *chi.Mux {
 	tagHandler := &handlers.TagHandler{Logger: logger}
 	activityHandler := &handlers.ActivityHandler{Logger: logger}
 	timeEntryHandler := &handlers.TimeEntryHandler{Logger: logger}
+	resumeHandler := &handlers.ResumeHandler{Logger: logger}
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
@@ -69,6 +70,9 @@ func SetupRoutes(logger *zap.Logger) *chi.Mux {
 			r.Get("/active", timeEntryHandler.GetActiveTimer)
 			r.Delete("/{id}", timeEntryHandler.DeleteTimeEntry)
 		})
+
+		// Resume
+		r.Get("/resume", resumeHandler.GetResume)
 	})
 
 	return r
