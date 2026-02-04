@@ -25,6 +25,14 @@ type CreateActivityInput struct {
 	TagNames         []string `json:"tag_names"`
 }
 
+type ActivityWithStats struct {
+	models.Activity
+	TotalSeconds   int64      `json:"total_seconds"`
+	TotalFormatted string     `json:"total_formatted"`
+	EntryCount     int64      `json:"entry_count"`
+	LastTracked    *time.Time `json:"last_tracked"`
+}
+
 // CreateActivity creates a new activity with auto-created categories/tags
 func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request) {
 	var input CreateActivityInput
@@ -341,14 +349,6 @@ func (h *ActivityHandler) GetActivitiesStats(w http.ResponseWriter, r *http.Requ
 		h.Logger.Error("Failed to fetch activities", zap.Error(err))
 		utils.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch activities")
 		return
-	}
-
-	type ActivityWithStats struct {
-		models.Activity
-		TotalSeconds   int64      `json:"total_seconds"`
-		TotalFormatted string     `json:"total_formatted"`
-		EntryCount     int64      `json:"entry_count"`
-		LastTracked    *time.Time `json:"last_tracked"`
 	}
 
 	var result []ActivityWithStats

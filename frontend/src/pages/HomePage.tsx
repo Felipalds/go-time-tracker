@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { CircularTimer } from "../components/molecules/CircularTimer";
 
-const API_URL = "http://localhost:8081/api";
+const API_URL = "http://localhost:8085/api";
 
 interface Activity {
   id: number;
@@ -295,18 +295,18 @@ export const HomePage: React.FC = () => {
 
         {/* Activities List */}
         {activities.length > 0 && (
-          <div className="activities-section mt-8">
+          <div className="activities-section">
             <h2
               className="text-secondary mb-6 tracking-widest"
-              style={{ fontSize: "12px" }}
+              style={{ fontSize: "14px" }}
             >
               RECENT ACTIVITIES
             </h2>
-            <div className="space-y-3">
+            <div className="flex flex-col gap-4 w-full">
               {activities.map((activity) => (
                 <div
                   key={activity.id}
-                  className={`card-dark cursor-pointer flex justify-between items-center ${isStarting ? "opacity-50 pointer-events-none" : ""}`}
+                  className={`w-full card-dark cursor-pointer flex justify-between items-center ${isStarting ? "opacity-50 pointer-events-none" : ""}`}
                   onClick={() => handleActivityClick(activity.id)}
                 >
                   <div>
