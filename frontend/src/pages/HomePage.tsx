@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { CircularTimer } from "../components/molecules/CircularTimer";
 import { ResumeSection } from "../components/organisms/ResumeSection";
 import { ActivityMenu } from "../components/molecules/ActivityMenu";
@@ -7,191 +7,77 @@ import { RewardGrid } from "../components/molecules/RewardGrid";
 import { ClaimableBox } from "../components/molecules/ClaimableBox";
 import { CollectionModal } from "../components/organisms/CollectionModal";
 import { RewardReveal } from "../components/molecules/RewardReveal";
-import { type ChampionMastery } from "@/interfaces/ChampionMastery";
 
-const API_URL = "http://localhost:8085/api";
-
-interface Activity {
-  id: number;
-  name: string;
-  main_category: { name: string };
-  sub_category?: { name: string } | null;
-  tags?: { name: string }[];
-  total_seconds?: number;
-  total_formatted?: string;
-  entry_count?: number;
-}
-
-interface ActiveTimer {
-  id: number;
-  activity_id: number;
-  activity_name: string;
-  start_time: string;
-}
-
-interface Reward {
-  id: number;
-  reward_type: string;
-  external_id: string;
-  name: string;
-  image_url: string;
-  rarity: "common" | "rare" | "epic";
-}
-
-interface RewardStatus {
-  total_claimable: number;
-  activities: {
-    activity_id: number;
-    activity_name: string;
-    claimable: number;
-  }[];
-}
-
-interface ClaimedReward extends Reward {
-  is_duplicate?: boolean;
-  mastery_level?: number;
-}
+import type { Activity, ClaimedReward } from "@/interfaces";
+import {
+  useActivities,
+  useCreateActivity,
+  useUpdateActivity,
+  useDeleteActivity,
+} from "@/hooks/useActivities";
+import { useCategories } from "@/hooks/useCategories";
+import { useTags } from "@/hooks/useTags";
+import {
+  useActiveTimer,
+  useStartTimer,
+  useStopTimer,
+} from "@/hooks/useTimeEntries";
+import {
+  useRewards,
+  useRewardStatus,
+  useClaimReward,
+} from "@/hooks/useRewards";
 
 export const HomePage: React.FC = () => {
-  const [categories, setCategories] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
+  // React Query hooks
+  const { data: activities = [] } = useActivities();
+  const { data: categories = [] } = useCategories();
+  const { data: availableTags = [] } = useTags();
+  const { data: activeTimer } = useActiveTimer();
+  const { data: rewardsData } = useRewards();
+  const { data: rewardStatus } = useRewardStatus();
 
-  // Concurrency Lock
+  // Mutations
+  const createActivity = useCreateActivity();
+  const updateActivity = useUpdateActivity();
+  const deleteActivity = useDeleteActivity();
+  const startTimer = useStartTimer();
+  const stopTimer = useStopTimer();
+  const claimReward = useClaimReward();
+
+  // Local state
   const [isStarting, setIsStarting] = useState(false);
-
-  // Form state
   const [activityName, setActivityName] = useState("");
   const [mainCategory, setMainCategory] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-
-  // Edit dialog state
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-
-  // Rewards state
-  const [rewards, setRewards] = useState<Reward[]>([]);
-  const [mastery, setMastery] = useState<ChampionMastery[]>([]);
-  const [rewardStatus, setRewardStatus] = useState<RewardStatus | null>(null);
   const [revealedReward, setRevealedReward] = useState<ClaimedReward | null>(
     null,
   );
-  const [isClaiming, setIsClaiming] = useState(false);
   const [showCollection, setShowCollection] = useState(false);
 
-  // Fetch data
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  // Derived data
+  const rewards = rewardsData?.rewards || [];
+  const mastery = rewardsData?.mastery || [];
+  const totalClaimable = rewardStatus?.total_claimable || 0;
 
-  useEffect(() => {
-    fetchTags();
-  }, []);
-
-  useEffect(() => {
-    fetchActivities();
-  }, []);
-
-  useEffect(() => {
-    fetchActiveTimer();
-    const interval = setInterval(fetchActiveTimer, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fetch rewards data
-  useEffect(() => {
-    fetchRewards();
-    fetchRewardStatus();
-  }, []);
-
-  // Refresh reward status when timer stops
-  useEffect(() => {
-    if (!activeTimer) {
-      fetchRewardStatus();
-    }
-  }, [activeTimer]);
-
-  const fetchCategories = () => {
-    fetch(`${API_URL}/categories`)
-      .then((res) => res.json())
-      .then((data) =>
-        setCategories(data.categories?.map((c: any) => c.name) || []),
-      )
-      .catch((err) => console.error("Failed to fetch categories:", err));
-  };
-
-  const fetchTags = () => {
-    fetch(`${API_URL}/tags`)
-      .then((res) => res.json())
-      .then((data) =>
-        setAvailableTags(data.tags?.map((t: any) => t.name) || []),
-      )
-      .catch((err) => console.error("Failed to fetch tags:", err));
-  };
-
-  const fetchActivities = () => {
-    fetch(`${API_URL}/activities/stats`)
-      .then((res) => res.json())
-      .then((data) => setActivities(data.activities || []))
-      .catch((err) => console.error("Failed to fetch activities:", err));
-  };
-
-  const fetchActiveTimer = () => {
-    fetch(`${API_URL}/time-entries/active`)
-      .then((res) => res.json())
-      .then((data) => setActiveTimer(data.active_timer))
-      .catch((err) => console.error("Failed to fetch active timer:", err));
-  };
-
-  const fetchRewards = () => {
-    fetch(`${API_URL}/rewards`)
-      .then((res) => res.json())
-      .then((data) => {
-        setRewards(data.rewards || []);
-        setMastery(data.mastery || []);
-      })
-      .catch((err) => console.error("Failed to fetch rewards:", err));
-  };
-
-  const fetchRewardStatus = () => {
-    fetch(`${API_URL}/rewards/status`)
-      .then((res) => res.json())
-      .then((data) => setRewardStatus(data))
-      .catch((err) => console.error("Failed to fetch reward status:", err));
-  };
-
-  // Auto-Provision - Create activity if needed, then start timer
   const handlePlay = async () => {
     if (isStarting) return;
-
     setIsStarting(true);
 
     try {
       const name = activityName.trim() || "Work";
       const category = mainCategory.trim() || "Work";
 
-      const response = await fetch(`${API_URL}/activities`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name,
-          main_category_name: category,
-          sub_category_name: null,
-          tag_names: selectedTags,
-        }),
+      const newActivity = await createActivity.mutateAsync({
+        name,
+        main_category_name: category,
+        sub_category_name: null,
+        tag_names: selectedTags,
       });
 
-      const newActivity = await response.json();
-
-      await fetch(`${API_URL}/time-entries/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activity_id: newActivity.id }),
-      });
-
-      await fetchActiveTimer();
-      await fetchActivities();
+      await startTimer.mutateAsync(newActivity.id);
 
       setActivityName("");
       setMainCategory("");
@@ -207,10 +93,7 @@ export const HomePage: React.FC = () => {
 
   const handleStopTimer = async () => {
     try {
-      await fetch(`${API_URL}/time-entries/stop`, { method: "POST" });
-      setActiveTimer(null);
-      fetchActivities();
-      fetchRewardStatus();
+      await stopTimer.mutateAsync();
     } catch (err) {
       console.error("Failed to stop timer:", err);
     }
@@ -225,12 +108,7 @@ export const HomePage: React.FC = () => {
 
     setIsStarting(true);
     try {
-      await fetch(`${API_URL}/time-entries/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activity_id: activityId }),
-      });
-      await fetchActiveTimer();
+      await startTimer.mutateAsync(activityId);
     } catch (err) {
       console.error("Failed to start timer:", err);
     } finally {
@@ -243,19 +121,7 @@ export const HomePage: React.FC = () => {
     data: { name: string; main_category_name: string; tag_names: string[] },
   ) => {
     try {
-      const response = await fetch(`${API_URL}/activities/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update activity");
-      }
-
-      await fetchActivities();
-      await fetchCategories();
-      await fetchTags();
+      await updateActivity.mutateAsync({ id, data });
       setEditingActivity(null);
     } catch (err) {
       console.error("Failed to update activity:", err);
@@ -269,15 +135,7 @@ export const HomePage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/activities/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete activity");
-      }
-
-      await fetchActivities();
+      await deleteActivity.mutateAsync(id);
     } catch (err) {
       console.error("Failed to delete activity:", err);
       alert("Failed to delete activity");
@@ -285,38 +143,27 @@ export const HomePage: React.FC = () => {
   };
 
   const handleClaimReward = async () => {
-    if (isClaiming || !rewardStatus || rewardStatus.total_claimable <= 0)
+    if (
+      claimReward.isPending ||
+      !rewardStatus ||
+      rewardStatus.total_claimable <= 0
+    ) {
       return;
+    }
 
-    // Find first activity with claimable rewards
     const claimableActivity = rewardStatus.activities.find(
       (a) => a.claimable > 0,
     );
     if (!claimableActivity) return;
 
-    setIsClaiming(true);
     try {
-      const response = await fetch(`${API_URL}/rewards/claim`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activity_id: claimableActivity.activity_id }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to claim reward");
-      }
-
-      const data = await response.json();
-      setRevealedReward(data.reward);
-
-      // Refresh data
-      await fetchRewards();
-      await fetchRewardStatus();
+      const result = await claimReward.mutateAsync(
+        claimableActivity.activity_id,
+      );
+      setRevealedReward(result.reward);
     } catch (err) {
       console.error("Failed to claim reward:", err);
       alert("Failed to claim reward");
-    } finally {
-      setIsClaiming(false);
     }
   };
 
@@ -344,8 +191,6 @@ export const HomePage: React.FC = () => {
       t.toLowerCase().includes(tagInput.toLowerCase()) &&
       !selectedTags.includes(t),
   );
-
-  const totalClaimable = rewardStatus?.total_claimable || 0;
 
   return (
     <div className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth">
@@ -375,7 +220,7 @@ export const HomePage: React.FC = () => {
               <ClaimableBox
                 count={totalClaimable}
                 onClaim={handleClaimReward}
-                disabled={isClaiming || !!activeTimer}
+                disabled={claimReward.isPending || !!activeTimer}
               />
 
               {/* Recent Rewards Grid */}

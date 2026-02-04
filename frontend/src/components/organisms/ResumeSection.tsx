@@ -1,49 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { PieChart } from "../atoms/PieChart";
-
-const API_URL = "http://localhost:8085/api";
-
-type Period = "day" | "week" | "month" | "year";
-
-interface ActivityResume {
-  activity_id: number;
-  activity_name: string;
-  total_seconds: number;
-  total_time: string;
-  entry_count: number;
-  percentage: number;
-}
-
-interface ResumeData {
-  period: string;
-  total_seconds: number;
-  total_time: string;
-  activities: ActivityResume[];
-}
+import { useResume } from "@/hooks/useResume";
+import type { ResumePeriod } from "@/interfaces";
 
 const COLORS = ["#F87070", "#70F3F8", "#D881F8"];
 
 export const ResumeSection: React.FC = () => {
-  const [period, setPeriod] = useState<Period>("week");
-  const [resumeData, setResumeData] = useState<ResumeData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchResume();
-  }, [period]);
-
-  const fetchResume = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/resume?period=${period}`);
-      const data = await response.json();
-      setResumeData(data);
-    } catch (err) {
-      console.error("Failed to fetch resume:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [period, setPeriod] = useState<ResumePeriod>("week");
+  const { data: resumeData, isLoading } = useResume(period);
 
   const pieData =
     resumeData?.activities.map((activity, index) => ({
@@ -56,7 +20,7 @@ export const ResumeSection: React.FC = () => {
     <div className="w-full bg-white/[0.03] border border-white/[0.06] rounded-3xl p-6 backdrop-blur-xl">
       {/* Period Filters */}
       <div className="flex gap-2 mb-6 justify-center">
-        {(["day", "week", "month", "year"] as Period[]).map((p) => (
+        {(["today", "week", "month", "year"] as ResumePeriod[]).map((p) => (
           <button
             key={p}
             className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
@@ -71,7 +35,7 @@ export const ResumeSection: React.FC = () => {
         ))}
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="text-slate-600 text-center py-8 text-sm">
           Loading...
         </div>
@@ -103,7 +67,7 @@ export const ResumeSection: React.FC = () => {
                       {activity.activity_name}
                     </span>
                     <span className="text-slate-500 ml-2 text-xs">
-                      {activity.total_time}
+                      {activity.total_formatted}
                     </span>
                   </div>
                   <div className="h-1 bg-white/[0.05] rounded-full overflow-hidden">
@@ -126,7 +90,7 @@ export const ResumeSection: React.FC = () => {
             <div className="mt-2 pt-2 border-t border-white/[0.08]">
               <div className="flex justify-between text-slate-400 text-xs">
                 <span>Total</span>
-                <span>{resumeData.total_time}</span>
+                <span>{resumeData.total_formatted}</span>
               </div>
             </div>
           </div>

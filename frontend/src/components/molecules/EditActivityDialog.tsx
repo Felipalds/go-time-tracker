@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from "react";
-
-interface Activity {
-  id: number;
-  name: string;
-  main_category: { name: string };
-  sub_category?: { name: string } | null;
-  tags?: { name: string }[];
-}
+import type { Activity } from "@/interfaces";
 
 interface EditActivityDialogProps {
   activity: Activity;
   categories: string[];
   availableTags: string[];
-  onSave: (id: number, data: { name: string; main_category_name: string; tag_names: string[] }) => void;
+  onSave: (
+    id: number,
+    data: { name: string; main_category_name: string; tag_names: string[] },
+  ) => void;
   onClose: () => void;
 }
 
@@ -26,7 +22,7 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
   const [name, setName] = useState(activity.name);
   const [category, setCategory] = useState(activity.main_category?.name || "");
   const [selectedTags, setSelectedTags] = useState<string[]>(
-    activity.tags?.map((t) => t.name) || []
+    activity.tags?.map((t) => t.name) || [],
   );
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -63,13 +59,13 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
   };
 
   const filteredCategories = categories.filter(
-    (c) => c.toLowerCase().includes(category.toLowerCase()) && c !== category
+    (c) => c.toLowerCase().includes(category.toLowerCase()) && c !== category,
   );
 
   const filteredTags = availableTags.filter(
     (t) =>
       t.toLowerCase().includes(tagInput.toLowerCase()) &&
-      !selectedTags.includes(t)
+      !selectedTags.includes(t),
   );
 
   return (
@@ -81,7 +77,9 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
         className="w-full max-w-md bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-semibold text-slate-50 mb-6">Edit Activity</h2>
+        <h2 className="text-xl font-semibold text-slate-50 mb-6">
+          Edit Activity
+        </h2>
 
         <div className="flex flex-col gap-4">
           {/* Activity Name */}
@@ -98,7 +96,9 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
 
           {/* Category */}
           <div className="relative">
-            <label className="block text-sm text-slate-400 mb-2">Category</label>
+            <label className="block text-sm text-slate-400 mb-2">
+              Category
+            </label>
             <input
               type="text"
               className="w-full bg-white/[0.02] border border-white/[0.08] rounded-xl px-4 py-3 text-slate-50 text-sm placeholder:text-slate-600 focus:outline-none focus:border-indigo-400/40 focus:bg-white/[0.04]"

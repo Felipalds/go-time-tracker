@@ -1,16 +1,7 @@
 import React, { useState } from "react";
 import { RewardIcon } from "../atoms/RewardIcon";
 import { RewardCard } from "../molecules/RewardCard";
-import { type ChampionMastery } from "@/interfaces/ChampionMastery";
-
-interface Reward {
-  id: number;
-  reward_type: string;
-  external_id: string;
-  name: string;
-  image_url: string;
-  rarity: "common" | "rare" | "epic";
-}
+import type { Reward, ChampionMastery, Rarity } from "@/interfaces";
 
 interface CollectionModalProps {
   rewards: Reward[];
@@ -24,7 +15,7 @@ interface SelectedItem {
   imageUrl: string;
   name: string;
   type: string;
-  rarity: "common" | "rare" | "epic";
+  rarity: Rarity;
   count: number;
   masteryLevel?: number;
 }

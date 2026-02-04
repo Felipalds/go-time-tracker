@@ -1,19 +1,6 @@
 import React from "react";
 import { RewardIcon } from "../atoms/RewardIcon";
-
-interface Reward {
-  id: number;
-  reward_type: string;
-  external_id: string;
-  name: string;
-  image_url: string;
-  rarity: "common" | "rare" | "epic";
-}
-
-interface ChampionMastery {
-  champion_id: string;
-  mastery_level: number;
-}
+import type { Reward, ChampionMastery } from "@/interfaces";
 
 interface RewardGridProps {
   rewards: Reward[];

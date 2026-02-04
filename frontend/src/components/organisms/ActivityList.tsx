@@ -1,17 +1,7 @@
-import React from 'react';
-import { Card } from '../atoms/Card';
-import { Badge } from '../atoms/Badge';
-
-interface Activity {
-  id: number;
-  name: string;
-  main_category: { name: string };
-  sub_category?: { name: string } | null;
-  tags?: { name: string }[];
-  total_seconds?: number;
-  total_formatted?: string;
-  entry_count?: number;
-}
+import React from "react";
+import { Card } from "../atoms/Card";
+import { Badge } from "../atoms/Badge";
+import type { Activity } from "@/interfaces";
 
 interface ActivityListProps {
   activities: Activity[];
@@ -44,9 +34,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
         >
           <div className="space-y-2">
             {/* Activity Name */}
-            <h3 className="text-pixel-base font-bold">
-              🎮 {activity.name}
-            </h3>
+            <h3 className="text-pixel-base font-bold">🎮 {activity.name}</h3>
 
             {/* Categories */}
             <div className="text-pixel-sm text-gray-600">
