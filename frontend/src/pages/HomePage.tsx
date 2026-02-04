@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { CircularTimer } from "../components/molecules/CircularTimer";
 import { ResumeSection } from "../components/organisms/ResumeSection";
+import { ActivityMenu } from "../components/molecules/ActivityMenu";
+import { EditActivityDialog } from "../components/molecules/EditActivityDialog";
 
 const API_URL = "http://localhost:8085/api";
 
@@ -37,23 +39,16 @@ export const HomePage: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
+  // Edit dialog state
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+
   // Fetch data
   useEffect(() => {
-    fetch(`${API_URL}/categories`)
-      .then((res) => res.json())
-      .then((data) =>
-        setCategories(data.categories?.map((c: any) => c.name) || []),
-      )
-      .catch((err) => console.error("Failed to fetch categories:", err));
+    fetchCategories();
   }, []);
 
   useEffect(() => {
-    fetch(`${API_URL}/tags`)
-      .then((res) => res.json())
-      .then((data) =>
-        setAvailableTags(data.tags?.map((t: any) => t.name) || []),
-      )
-      .catch((err) => console.error("Failed to fetch tags:", err));
+    fetchTags();
   }, []);
 
   useEffect(() => {
@@ -65,6 +60,24 @@ export const HomePage: React.FC = () => {
     const interval = setInterval(fetchActiveTimer, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchCategories = () => {
+    fetch(`${API_URL}/categories`)
+      .then((res) => res.json())
+      .then((data) =>
+        setCategories(data.categories?.map((c: any) => c.name) || []),
+      )
+      .catch((err) => console.error("Failed to fetch categories:", err));
+  };
+
+  const fetchTags = () => {
+    fetch(`${API_URL}/tags`)
+      .then((res) => res.json())
+      .then((data) =>
+        setAvailableTags(data.tags?.map((t: any) => t.name) || []),
+      )
+      .catch((err) => console.error("Failed to fetch tags:", err));
+  };
 
   const fetchActivities = () => {
     fetch(`${API_URL}/activities/stats`)
@@ -159,6 +172,52 @@ export const HomePage: React.FC = () => {
       console.error("Failed to start timer:", err);
     } finally {
       setIsStarting(false);
+    }
+  };
+
+  const handleEditActivity = async (
+    id: number,
+    data: { name: string; main_category_name: string; tag_names: string[] },
+  ) => {
+    try {
+      const response = await fetch(`${API_URL}/activities/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update activity");
+      }
+
+      await fetchActivities();
+      await fetchCategories();
+      await fetchTags();
+      setEditingActivity(null);
+    } catch (err) {
+      console.error("Failed to update activity:", err);
+      alert("Failed to update activity");
+    }
+  };
+
+  const handleDeleteActivity = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this activity?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/activities/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete activity");
+      }
+
+      await fetchActivities();
+    } catch (err) {
+      console.error("Failed to delete activity:", err);
+      alert("Failed to delete activity");
     }
   };
 
@@ -333,11 +392,13 @@ export const HomePage: React.FC = () => {
                 {activities.map((activity) => (
                   <div
                     key={activity.id}
-                    className={`w-full bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 cursor-pointer hover:bg-white/[0.04] hover:border-white/10 transition-all ${isStarting ? "opacity-50 pointer-events-none" : ""}`}
-                    onClick={() => handleActivityClick(activity.id)}
+                    className={`w-full bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 hover:bg-white/[0.04] hover:border-white/10 transition-all ${isStarting ? "opacity-50 pointer-events-none" : ""}`}
                   >
                     <div className="flex justify-between items-center">
-                      <div>
+                      <div
+                        className="flex-1 cursor-pointer"
+                        onClick={() => handleActivityClick(activity.id)}
+                      >
                         <h3 className="text-slate-50 mb-2 text-sm">
                           {activity.name}
                         </h3>
@@ -347,22 +408,31 @@ export const HomePage: React.FC = () => {
                             ` / ${activity.sub_category.name}`}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <div className="text-indigo-400 text-base">
-                          {activity.total_formatted || "0s"}
-                        </div>
-                        {activity.tags && activity.tags.length > 0 && (
-                          <div className="flex gap-1 mt-2 justify-end">
-                            {activity.tags.slice(0, 2).map((tag, i) => (
-                              <span
-                                key={i}
-                                className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded text-xs font-semibold"
-                              >
-                                {tag.name}
-                              </span>
-                            ))}
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="text-right cursor-pointer"
+                          onClick={() => handleActivityClick(activity.id)}
+                        >
+                          <div className="text-indigo-400 text-base">
+                            {activity.total_formatted || "0s"}
                           </div>
-                        )}
+                          {activity.tags && activity.tags.length > 0 && (
+                            <div className="flex gap-1 mt-2 justify-end">
+                              {activity.tags.slice(0, 2).map((tag, i) => (
+                                <span
+                                  key={i}
+                                  className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded text-xs font-semibold"
+                                >
+                                  {tag.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <ActivityMenu
+                          onEdit={() => setEditingActivity(activity)}
+                          onDelete={() => handleDeleteActivity(activity.id)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -372,6 +442,17 @@ export const HomePage: React.FC = () => {
           )}
         </div>
       </section>
+
+      {/* Edit Activity Dialog */}
+      {editingActivity && (
+        <EditActivityDialog
+          activity={editingActivity}
+          categories={categories}
+          availableTags={availableTags}
+          onSave={handleEditActivity}
+          onClose={() => setEditingActivity(null)}
+        />
+      )}
     </div>
   );
 };
