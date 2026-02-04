@@ -39,3 +39,8 @@ func DecodeJSON(r *http.Request, v interface{}) error {
 	}
 	return json.Unmarshal(body, v)
 }
+
+// EncodeJSON encodes data as JSON to response writer
+func EncodeJSON(w http.ResponseWriter, data interface{}) error {
+	return json.NewEncoder(w).Encode(data)
+}

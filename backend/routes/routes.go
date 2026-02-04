@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/Felipalds/go-pomodoro/handlers"
+	"github.com/Felipalds/go-pomodoro/services"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -27,12 +28,27 @@ func SetupRoutes(logger *zap.Logger) *chi.Mux {
 		MaxAge:           300,
 	}))
 
+	// Initialize Data Dragon service
+	ddService := services.GetDataDragonService()
+	if err := ddService.Initialize(); err != nil {
+		logger.Error("Failed to initialize Data Dragon service", zap.Error(err))
+	} else {
+		stats := ddService.GetStats()
+		logger.Info("Data Dragon service initialized",
+			zap.Int("champions", stats["champions"]),
+			zap.Int("items", stats["items"]),
+			zap.Int("skins", stats["skins"]),
+			zap.Int("icons", stats["icons"]),
+		)
+	}
+
 	// Initialize handlers
 	categoryHandler := &handlers.CategoryHandler{Logger: logger}
 	tagHandler := &handlers.TagHandler{Logger: logger}
 	activityHandler := &handlers.ActivityHandler{Logger: logger}
 	timeEntryHandler := &handlers.TimeEntryHandler{Logger: logger}
 	resumeHandler := &handlers.ResumeHandler{Logger: logger}
+	rewardHandler := &handlers.RewardHandler{Logger: logger, DDService: ddService}
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
@@ -73,6 +89,13 @@ func SetupRoutes(logger *zap.Logger) *chi.Mux {
 
 		// Resume
 		r.Get("/resume", resumeHandler.GetResume)
+
+		// Rewards
+		r.Route("/rewards", func(r chi.Router) {
+			r.Get("/", rewardHandler.GetRewards)
+			r.Get("/status", rewardHandler.GetRewardStatus)
+			r.Post("/claim", rewardHandler.ClaimReward)
+		})
 	})
 
 	return r

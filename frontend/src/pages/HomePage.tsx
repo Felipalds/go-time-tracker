@@ -3,6 +3,11 @@ import { CircularTimer } from "../components/molecules/CircularTimer";
 import { ResumeSection } from "../components/organisms/ResumeSection";
 import { ActivityMenu } from "../components/molecules/ActivityMenu";
 import { EditActivityDialog } from "../components/molecules/EditActivityDialog";
+import { RewardGrid } from "../components/molecules/RewardGrid";
+import { ClaimableBox } from "../components/molecules/ClaimableBox";
+import { CollectionModal } from "../components/organisms/CollectionModal";
+import { RewardReveal } from "../components/molecules/RewardReveal";
+import { type ChampionMastery } from "@/interfaces/ChampionMastery";
 
 const API_URL = "http://localhost:8085/api";
 
@@ -24,13 +29,36 @@ interface ActiveTimer {
   start_time: string;
 }
 
+interface Reward {
+  id: number;
+  reward_type: string;
+  external_id: string;
+  name: string;
+  image_url: string;
+  rarity: "common" | "rare" | "epic";
+}
+
+interface RewardStatus {
+  total_claimable: number;
+  activities: {
+    activity_id: number;
+    activity_name: string;
+    claimable: number;
+  }[];
+}
+
+interface ClaimedReward extends Reward {
+  is_duplicate?: boolean;
+  mastery_level?: number;
+}
+
 export const HomePage: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
 
-  // Task 2: Concurrency Lock
+  // Concurrency Lock
   const [isStarting, setIsStarting] = useState(false);
 
   // Form state
@@ -41,6 +69,16 @@ export const HomePage: React.FC = () => {
 
   // Edit dialog state
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+
+  // Rewards state
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [mastery, setMastery] = useState<ChampionMastery[]>([]);
+  const [rewardStatus, setRewardStatus] = useState<RewardStatus | null>(null);
+  const [revealedReward, setRevealedReward] = useState<ClaimedReward | null>(
+    null,
+  );
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [showCollection, setShowCollection] = useState(false);
 
   // Fetch data
   useEffect(() => {
@@ -60,6 +98,19 @@ export const HomePage: React.FC = () => {
     const interval = setInterval(fetchActiveTimer, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch rewards data
+  useEffect(() => {
+    fetchRewards();
+    fetchRewardStatus();
+  }, []);
+
+  // Refresh reward status when timer stops
+  useEffect(() => {
+    if (!activeTimer) {
+      fetchRewardStatus();
+    }
+  }, [activeTimer]);
 
   const fetchCategories = () => {
     fetch(`${API_URL}/categories`)
@@ -93,19 +144,33 @@ export const HomePage: React.FC = () => {
       .catch((err) => console.error("Failed to fetch active timer:", err));
   };
 
-  // Task 2: Auto-Provision - Create activity if needed, then start timer
+  const fetchRewards = () => {
+    fetch(`${API_URL}/rewards`)
+      .then((res) => res.json())
+      .then((data) => {
+        setRewards(data.rewards || []);
+        setMastery(data.mastery || []);
+      })
+      .catch((err) => console.error("Failed to fetch rewards:", err));
+  };
+
+  const fetchRewardStatus = () => {
+    fetch(`${API_URL}/rewards/status`)
+      .then((res) => res.json())
+      .then((data) => setRewardStatus(data))
+      .catch((err) => console.error("Failed to fetch reward status:", err));
+  };
+
+  // Auto-Provision - Create activity if needed, then start timer
   const handlePlay = async () => {
-    // Prevent duplicate clicks
     if (isStarting) return;
 
     setIsStarting(true);
 
     try {
-      // Use form values or defaults
       const name = activityName.trim() || "Work";
       const category = mainCategory.trim() || "Work";
 
-      // Create the activity
       const response = await fetch(`${API_URL}/activities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,18 +184,15 @@ export const HomePage: React.FC = () => {
 
       const newActivity = await response.json();
 
-      // Start timer for the new activity
       await fetch(`${API_URL}/time-entries/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activity_id: newActivity.id }),
       });
 
-      // Task 2: State Sync - Update UI immediately
       await fetchActiveTimer();
       await fetchActivities();
 
-      // Clear form
       setActivityName("");
       setMainCategory("");
       setSelectedTags([]);
@@ -148,6 +210,7 @@ export const HomePage: React.FC = () => {
       await fetch(`${API_URL}/time-entries/stop`, { method: "POST" });
       setActiveTimer(null);
       fetchActivities();
+      fetchRewardStatus();
     } catch (err) {
       console.error("Failed to stop timer:", err);
     }
@@ -221,6 +284,46 @@ export const HomePage: React.FC = () => {
     }
   };
 
+  const handleClaimReward = async () => {
+    if (isClaiming || !rewardStatus || rewardStatus.total_claimable <= 0)
+      return;
+
+    // Find first activity with claimable rewards
+    const claimableActivity = rewardStatus.activities.find(
+      (a) => a.claimable > 0,
+    );
+    if (!claimableActivity) return;
+
+    setIsClaiming(true);
+    try {
+      const response = await fetch(`${API_URL}/rewards/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activity_id: claimableActivity.activity_id }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to claim reward");
+      }
+
+      const data = await response.json();
+      setRevealedReward(data.reward);
+
+      // Refresh data
+      await fetchRewards();
+      await fetchRewardStatus();
+    } catch (err) {
+      console.error("Failed to claim reward:", err);
+      alert("Failed to claim reward");
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
+  const handleOpenCollection = () => {
+    setShowCollection(true);
+  };
+
   const addTag = (tag: string) => {
     if (tag && !selectedTags.includes(tag)) {
       setSelectedTags([...selectedTags, tag]);
@@ -242,25 +345,47 @@ export const HomePage: React.FC = () => {
       !selectedTags.includes(t),
   );
 
+  const totalClaimable = rewardStatus?.total_claimable || 0;
+
   return (
     <div className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth">
       {/* Section 1: Timer */}
-      <section className="h-screen snap-start snap-always flex items-center justify-content p-4">
+      <section className="h-screen snap-start snap-always flex items-center justify-center p-4">
         <div className="w-full max-w-4xl mx-auto h-full flex flex-col items-center justify-center gap-8 relative">
           {/* Header */}
           <h1 className="text-2xl text-slate-50 tracking-widest">
-            Gemini time tracker
+            Legends Time Tracker
           </h1>
 
-          {/* Circular Timer */}
-          <CircularTimer
-            isRunning={!!activeTimer}
-            isStarting={isStarting}
-            activityName={activeTimer?.activity_name || null}
-            startTime={activeTimer ? new Date(activeTimer.start_time) : null}
-            onStart={handlePlay}
-            onStop={handleStopTimer}
-          />
+          {/* Timer with Rewards Panel */}
+          <div className="relative">
+            {/* Circular Timer - Centered */}
+            <CircularTimer
+              isRunning={!!activeTimer}
+              isStarting={isStarting}
+              activityName={activeTimer?.activity_name || null}
+              startTime={activeTimer ? new Date(activeTimer.start_time) : null}
+              onStart={handlePlay}
+              onStop={handleStopTimer}
+            />
+
+            {/* Rewards Panel - Positioned to the right */}
+            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-8 flex flex-col items-center gap-4">
+              {/* Claimable Box */}
+              <ClaimableBox
+                count={totalClaimable}
+                onClaim={handleClaimReward}
+                disabled={isClaiming || !!activeTimer}
+              />
+
+              {/* Recent Rewards Grid */}
+              <RewardGrid
+                rewards={rewards}
+                mastery={mastery}
+                onOpenCollection={handleOpenCollection}
+              />
+            </div>
+          </div>
 
           {/* Form - Only show when not running */}
           {!activeTimer && (
@@ -451,6 +576,21 @@ export const HomePage: React.FC = () => {
           availableTags={availableTags}
           onSave={handleEditActivity}
           onClose={() => setEditingActivity(null)}
+        />
+      )}
+
+      {/* Reward Reveal Animation */}
+      <RewardReveal
+        reward={revealedReward}
+        onClose={() => setRevealedReward(null)}
+      />
+
+      {/* Collection Modal */}
+      {showCollection && (
+        <CollectionModal
+          rewards={rewards}
+          mastery={mastery}
+          onClose={() => setShowCollection(false)}
         />
       )}
     </div>

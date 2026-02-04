@@ -50,6 +50,8 @@ func runMigrations(logger *zap.Logger) error {
 		&models.Tag{},
 		&models.Activity{},
 		&models.TimeEntry{},
+		&models.UserReward{},
+		&models.ChampionMastery{},
 	)
 
 	if err != nil {
