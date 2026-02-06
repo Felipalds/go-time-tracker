@@ -98,7 +98,7 @@ func GetRarityForType(rewardType models.RewardType) models.Rarity {
 
 // GenerateReward spins the roulette and generates a reward
 // totalMinutes is used to determine drop rates
-func GenerateReward(db *gorm.DB, ddService *DataDragonService, totalMinutes int) (*RewardResult, error) {
+func GenerateReward(db *gorm.DB, ddService *DataDragonService, userID uint, totalMinutes int) (*RewardResult, error) {
 	rewardType := SpinRoulette(totalMinutes)
 	rarity := GetRarityForType(rewardType)
 
@@ -118,7 +118,7 @@ func GenerateReward(db *gorm.DB, ddService *DataDragonService, totalMinutes int)
 
 		// Check for duplicate and update mastery
 		var mastery models.ChampionMastery
-		err := db.Where("champion_id = ?", champ.ID).First(&mastery).Error
+		err := db.Where("user_id = ? AND champion_id = ?", userID, champ.ID).First(&mastery).Error
 		if err == nil {
 			// Duplicate - update mastery
 			result.IsDuplicate = true
@@ -131,6 +131,7 @@ func GenerateReward(db *gorm.DB, ddService *DataDragonService, totalMinutes int)
 			result.IsDuplicate = false
 			result.MasteryLevel = 1
 			mastery = models.ChampionMastery{
+				UserID:        userID,
 				ChampionID:    champ.ID,
 				ChampionName:  champ.Name,
 				ImageURL:      result.ImageURL,
@@ -179,7 +180,7 @@ func CalculateClaimableRewards(db *gorm.DB, activityID uint) (int, float64, int,
 	// Get total seconds for this activity
 	var totalSeconds int64
 	err := db.Table("time_entries").
-		Select("COALESCE(SUM(CAST((julianday(end_time) - julianday(start_time)) * 86400 AS INTEGER)), 0)").
+		Select("COALESCE(SUM(EXTRACT(EPOCH FROM (end_time - start_time))::INTEGER), 0)").
 		Where("activity_id = ? AND end_time IS NOT NULL", activityID).
 		Scan(&totalSeconds).Error
 	if err != nil {
@@ -207,10 +208,10 @@ func CalculateClaimableRewards(db *gorm.DB, activityID uint) (int, float64, int,
 	return claimable, progress, totalMinutes, nil
 }
 
-// GetAllClaimableRewards returns claimable rewards across all activities
-func GetAllClaimableRewards(db *gorm.DB) ([]map[string]interface{}, int, error) {
+// GetAllClaimableRewards returns claimable rewards across all activities for a user
+func GetAllClaimableRewards(db *gorm.DB, userID uint) ([]map[string]interface{}, int, error) {
 	var activities []models.Activity
-	if err := db.Where("deleted_at IS NULL").Find(&activities).Error; err != nil {
+	if err := db.Where("user_id = ? AND deleted_at IS NULL", userID).Find(&activities).Error; err != nil {
 		return nil, 0, err
 	}
 

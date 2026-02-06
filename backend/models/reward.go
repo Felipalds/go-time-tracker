@@ -24,6 +24,7 @@ const (
 // UserReward stores all rewards earned by the user
 type UserReward struct {
 	ID         uint       `gorm:"primaryKey" json:"id"`
+	UserID     uint       `gorm:"not null;index" json:"user_id"`
 	RewardType RewardType `gorm:"not null" json:"reward_type"`
 	ExternalID string     `gorm:"not null" json:"external_id"` // e.g., 'Ahri', '3031', 'Ahri_1'
 	Name       string     `gorm:"not null" json:"name"`
@@ -35,7 +36,8 @@ type UserReward struct {
 // ChampionMastery tracks mastery level for each champion
 type ChampionMastery struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
-	ChampionID    string    `gorm:"not null;uniqueIndex" json:"champion_id"` // e.g., 'Ahri'
+	UserID        uint      `gorm:"not null;index" json:"user_id"`
+	ChampionID    string    `gorm:"not null;index:idx_user_champion,unique" json:"champion_id"` // e.g., 'Ahri'
 	ChampionName  string    `gorm:"not null" json:"champion_name"`
 	ImageURL      string    `gorm:"not null" json:"image_url"`
 	MasteryLevel  int       `gorm:"default:1" json:"mastery_level"` // 1-7

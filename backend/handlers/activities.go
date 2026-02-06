@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Felipalds/go-pomodoro/database"
+	"github.com/Felipalds/go-pomodoro/middleware"
 	"github.com/Felipalds/go-pomodoro/models"
 	"github.com/Felipalds/go-pomodoro/services"
 	"github.com/Felipalds/go-pomodoro/utils"
@@ -35,6 +36,8 @@ type ActivityWithStats struct {
 
 // CreateActivity creates a new activity with auto-created categories/tags
 func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
+
 	var input CreateActivityInput
 	if err := utils.DecodeJSON(r, &input); err != nil {
 		utils.ErrorResponse(w, http.StatusBadRequest, "Invalid request body")
@@ -75,6 +78,7 @@ func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request)
 
 	// Create the activity
 	activity := models.Activity{
+		UserID:         userID,
 		Name:           input.Name,
 		MainCategoryID: mainCategory.ID,
 		SubCategoryID:  subCategoryID,
@@ -112,6 +116,7 @@ func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request)
 
 // GetActivities returns all active activities
 func (h *ActivityHandler) GetActivities(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
 	var activities []models.Activity
 
 	// Get all activities that are not deleted, with relationships
@@ -119,7 +124,7 @@ func (h *ActivityHandler) GetActivities(w http.ResponseWriter, r *http.Request) 
 		Preload("MainCategory").
 		Preload("SubCategory").
 		Preload("Tags").
-		Where("deleted_at IS NULL").
+		Where("user_id = ? AND deleted_at IS NULL", userID).
 		Find(&activities).Error; err != nil {
 		h.Logger.Error("Failed to fetch activities", zap.Error(err))
 		utils.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch activities")
@@ -133,6 +138,7 @@ func (h *ActivityHandler) GetActivities(w http.ResponseWriter, r *http.Request) 
 
 // GetActivity returns a single activity by ID with relationships
 func (h *ActivityHandler) GetActivity(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -145,7 +151,7 @@ func (h *ActivityHandler) GetActivity(w http.ResponseWriter, r *http.Request) {
 		Preload("MainCategory").
 		Preload("SubCategory").
 		Preload("Tags").
-		Where("id = ? AND deleted_at IS NULL", id).
+		Where("id = ? AND user_id = ? AND deleted_at IS NULL", id, userID).
 		First(&activity).Error; err != nil {
 		h.Logger.Error("Activity not found", zap.Uint64("id", id), zap.Error(err))
 		utils.ErrorResponse(w, http.StatusNotFound, "Activity not found")
@@ -157,6 +163,7 @@ func (h *ActivityHandler) GetActivity(w http.ResponseWriter, r *http.Request) {
 
 // UpdateActivity updates an activity
 func (h *ActivityHandler) UpdateActivity(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -177,7 +184,7 @@ func (h *ActivityHandler) UpdateActivity(w http.ResponseWriter, r *http.Request)
 	}
 
 	var activity models.Activity
-	if err := database.DB.Where("id = ? AND deleted_at IS NULL", id).First(&activity).Error; err != nil {
+	if err := database.DB.Where("id = ? AND user_id = ? AND deleted_at IS NULL", id, userID).First(&activity).Error; err != nil {
 		h.Logger.Error("Activity not found", zap.Uint64("id", id), zap.Error(err))
 		utils.ErrorResponse(w, http.StatusNotFound, "Activity not found")
 		return
@@ -246,6 +253,7 @@ func (h *ActivityHandler) UpdateActivity(w http.ResponseWriter, r *http.Request)
 
 // DeleteActivity soft deletes an activity
 func (h *ActivityHandler) DeleteActivity(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -254,7 +262,7 @@ func (h *ActivityHandler) DeleteActivity(w http.ResponseWriter, r *http.Request)
 	}
 
 	var activity models.Activity
-	if err := database.DB.Where("id = ? AND deleted_at IS NULL", id).First(&activity).Error; err != nil {
+	if err := database.DB.Where("id = ? AND user_id = ? AND deleted_at IS NULL", id, userID).First(&activity).Error; err != nil {
 		h.Logger.Error("Activity not found", zap.Uint64("id", id), zap.Error(err))
 		utils.ErrorResponse(w, http.StatusNotFound, "Activity not found")
 		return
@@ -274,6 +282,7 @@ func (h *ActivityHandler) DeleteActivity(w http.ResponseWriter, r *http.Request)
 
 // GetActivityTime returns time entries and statistics for an activity
 func (h *ActivityHandler) GetActivityTime(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -282,7 +291,7 @@ func (h *ActivityHandler) GetActivityTime(w http.ResponseWriter, r *http.Request
 	}
 
 	var activity models.Activity
-	if err := database.DB.Where("id = ? AND deleted_at IS NULL", id).First(&activity).Error; err != nil {
+	if err := database.DB.Where("id = ? AND user_id = ? AND deleted_at IS NULL", id, userID).First(&activity).Error; err != nil {
 		h.Logger.Error("Activity not found", zap.Uint64("id", id), zap.Error(err))
 		utils.ErrorResponse(w, http.StatusNotFound, "Activity not found")
 		return
@@ -337,6 +346,7 @@ func (h *ActivityHandler) GetActivityTime(w http.ResponseWriter, r *http.Request
 
 // GetActivitiesStats returns all activities with their time statistics
 func (h *ActivityHandler) GetActivitiesStats(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
 	var activities []models.Activity
 
 	// Get all active activities with relationships
@@ -344,7 +354,7 @@ func (h *ActivityHandler) GetActivitiesStats(w http.ResponseWriter, r *http.Requ
 		Preload("MainCategory").
 		Preload("SubCategory").
 		Preload("Tags").
-		Where("deleted_at IS NULL").
+		Where("user_id = ? AND deleted_at IS NULL", userID).
 		Find(&activities).Error; err != nil {
 		h.Logger.Error("Failed to fetch activities", zap.Error(err))
 		utils.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch activities")

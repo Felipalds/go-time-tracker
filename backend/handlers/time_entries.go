@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Felipalds/go-pomodoro/database"
+	"github.com/Felipalds/go-pomodoro/middleware"
 	"github.com/Felipalds/go-pomodoro/models"
 	"github.com/Felipalds/go-pomodoro/utils"
 	"github.com/go-chi/chi/v5"
@@ -18,6 +19,8 @@ type TimeEntryHandler struct {
 
 // StartTimer starts a new timer for an activity (auto-stops any running timer)
 func (h *TimeEntryHandler) StartTimer(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
+
 	var input struct {
 		ActivityID uint `json:"activity_id"`
 	}
@@ -27,16 +30,16 @@ func (h *TimeEntryHandler) StartTimer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate activity exists
+	// Validate activity exists and belongs to user
 	var activity models.Activity
-	if err := database.DB.Where("id = ? AND deleted_at IS NULL", input.ActivityID).First(&activity).Error; err != nil {
+	if err := database.DB.Where("id = ? AND user_id = ? AND deleted_at IS NULL", input.ActivityID, userID).First(&activity).Error; err != nil {
 		utils.ErrorResponse(w, http.StatusNotFound, "Activity not found")
 		return
 	}
 
-	// Check for active timer
+	// Check for active timer for this user
 	var activeTimer models.TimeEntry
-	err := database.DB.Where("end_time IS NULL").First(&activeTimer).Error
+	err := database.DB.Where("user_id = ? AND end_time IS NULL", userID).First(&activeTimer).Error
 
 	var stoppedPrevious *map[string]interface{}
 
@@ -65,6 +68,7 @@ func (h *TimeEntryHandler) StartTimer(w http.ResponseWriter, r *http.Request) {
 
 	// Create new time entry
 	newEntry := models.TimeEntry{
+		UserID:     userID,
 		ActivityID: input.ActivityID,
 		StartTime:  time.Now(),
 		EndTime:    nil,
@@ -96,8 +100,10 @@ func (h *TimeEntryHandler) StartTimer(w http.ResponseWriter, r *http.Request) {
 
 // StopTimer stops the currently running timer
 func (h *TimeEntryHandler) StopTimer(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
+
 	var activeTimer models.TimeEntry
-	err := database.DB.Where("end_time IS NULL").First(&activeTimer).Error
+	err := database.DB.Where("user_id = ? AND end_time IS NULL", userID).First(&activeTimer).Error
 
 	if err != nil {
 		utils.ErrorResponse(w, http.StatusNotFound, "No active timer found")
@@ -134,8 +140,10 @@ func (h *TimeEntryHandler) StopTimer(w http.ResponseWriter, r *http.Request) {
 
 // GetActiveTimer returns the currently running timer if any
 func (h *TimeEntryHandler) GetActiveTimer(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
+
 	var activeTimer models.TimeEntry
-	err := database.DB.Preload("Activity").Where("end_time IS NULL").First(&activeTimer).Error
+	err := database.DB.Preload("Activity").Where("user_id = ? AND end_time IS NULL", userID).First(&activeTimer).Error
 
 	if err != nil {
 		utils.SuccessResponse(w, map[string]interface{}{
@@ -162,6 +170,7 @@ func (h *TimeEntryHandler) GetActiveTimer(w http.ResponseWriter, r *http.Request
 
 // DeleteTimeEntry deletes a time entry (for corrections)
 func (h *TimeEntryHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
@@ -170,7 +179,7 @@ func (h *TimeEntryHandler) DeleteTimeEntry(w http.ResponseWriter, r *http.Reques
 	}
 
 	var entry models.TimeEntry
-	if err := database.DB.First(&entry, id).Error; err != nil {
+	if err := database.DB.Where("id = ? AND user_id = ?", id, userID).First(&entry).Error; err != nil {
 		h.Logger.Error("Time entry not found", zap.Uint64("id", id), zap.Error(err))
 		utils.ErrorResponse(w, http.StatusNotFound, "Time entry not found")
 		return

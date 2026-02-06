@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CircularTimer } from "../components/molecules/CircularTimer";
 import { ResumeSection } from "../components/organisms/ResumeSection";
 import { ActivityMenu } from "../components/molecules/ActivityMenu";
@@ -7,6 +8,7 @@ import { RewardGrid } from "../components/molecules/RewardGrid";
 import { ClaimableBox } from "../components/molecules/ClaimableBox";
 import { CollectionModal } from "../components/organisms/CollectionModal";
 import { RewardReveal } from "../components/molecules/RewardReveal";
+import { useAuth } from "@/contexts/AuthContext";
 
 import type { Activity, ClaimedReward } from "@/interfaces";
 import {
@@ -29,6 +31,9 @@ import {
 } from "@/hooks/useRewards";
 
 export const HomePage: React.FC = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
   // React Query hooks
   const { data: activities = [] } = useActivities();
   const { data: categories = [] } = useCategories();
@@ -182,6 +187,11 @@ export const HomePage: React.FC = () => {
     setSelectedTags(selectedTags.filter((t) => t !== tag));
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   const filteredCategories = categories.filter((c) =>
     c.toLowerCase().includes(mainCategory.toLowerCase()),
   );
@@ -197,6 +207,17 @@ export const HomePage: React.FC = () => {
       {/* Section 1: Timer */}
       <section className="h-screen snap-start snap-always flex items-center justify-center p-4">
         <div className="w-full max-w-4xl mx-auto h-full flex flex-col items-center justify-center gap-8 relative">
+          {/* User info & logout - top right */}
+          <div className="absolute top-4 right-4 flex items-center gap-3">
+            <span className="text-slate-400 text-sm">{user?.name}</span>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30 text-red-400 rounded-lg text-sm transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+
           {/* Header */}
           <h1 className="text-2xl text-slate-50 tracking-widest">
             Legends Time Tracker

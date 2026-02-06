@@ -2,9 +2,10 @@ package routes
 
 import (
 	"github.com/Felipalds/go-pomodoro/handlers"
+	"github.com/Felipalds/go-pomodoro/middleware"
 	"github.com/Felipalds/go-pomodoro/services"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"go.uber.org/zap"
 )
@@ -14,10 +15,10 @@ func SetupRoutes(logger *zap.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	r.Use(chimiddleware.Logger)
+	r.Use(chimiddleware.Recoverer)
+	r.Use(chimiddleware.RequestID)
+	r.Use(chimiddleware.RealIP)
 
 	// CORS
 	r.Use(cors.Handler(cors.Options{
@@ -52,49 +53,61 @@ func SetupRoutes(logger *zap.Logger) *chi.Mux {
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
-		// Categories
-		r.Route("/categories", func(r chi.Router) {
-			r.Get("/", categoryHandler.GetCategories)
-			r.Get("/{id}", categoryHandler.GetCategory)
-			r.Put("/{id}", categoryHandler.UpdateCategory)
-			r.Delete("/{id}", categoryHandler.DeleteCategory)
-		})
+		// Public routes (no auth required)
+		r.Post("/auth/register", handlers.Register)
+		r.Post("/auth/login", handlers.Login)
 
-		// Tags
-		r.Route("/tags", func(r chi.Router) {
-			r.Get("/", tagHandler.GetTags)
-			r.Get("/{id}", tagHandler.GetTag)
-			r.Put("/{id}", tagHandler.UpdateTag)
-			r.Delete("/{id}", tagHandler.DeleteTag)
-		})
+		// Protected routes (auth required)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.AuthMiddleware)
 
-		// Activities
-		r.Route("/activities", func(r chi.Router) {
-			r.Get("/", activityHandler.GetActivities)
-			r.Post("/", activityHandler.CreateActivity)
-			r.Get("/stats", activityHandler.GetActivitiesStats)
-			r.Get("/{id}", activityHandler.GetActivity)
-			r.Put("/{id}", activityHandler.UpdateActivity)
-			r.Delete("/{id}", activityHandler.DeleteActivity)
-			r.Get("/{id}/time", activityHandler.GetActivityTime)
-		})
+			// Auth
+			r.Get("/auth/me", handlers.GetMe)
 
-		// Time Entries
-		r.Route("/time-entries", func(r chi.Router) {
-			r.Post("/start", timeEntryHandler.StartTimer)
-			r.Post("/stop", timeEntryHandler.StopTimer)
-			r.Get("/active", timeEntryHandler.GetActiveTimer)
-			r.Delete("/{id}", timeEntryHandler.DeleteTimeEntry)
-		})
+			// Categories
+			r.Route("/categories", func(r chi.Router) {
+				r.Get("/", categoryHandler.GetCategories)
+				r.Get("/{id}", categoryHandler.GetCategory)
+				r.Put("/{id}", categoryHandler.UpdateCategory)
+				r.Delete("/{id}", categoryHandler.DeleteCategory)
+			})
 
-		// Resume
-		r.Get("/resume", resumeHandler.GetResume)
+			// Tags
+			r.Route("/tags", func(r chi.Router) {
+				r.Get("/", tagHandler.GetTags)
+				r.Get("/{id}", tagHandler.GetTag)
+				r.Put("/{id}", tagHandler.UpdateTag)
+				r.Delete("/{id}", tagHandler.DeleteTag)
+			})
 
-		// Rewards
-		r.Route("/rewards", func(r chi.Router) {
-			r.Get("/", rewardHandler.GetRewards)
-			r.Get("/status", rewardHandler.GetRewardStatus)
-			r.Post("/claim", rewardHandler.ClaimReward)
+			// Activities
+			r.Route("/activities", func(r chi.Router) {
+				r.Get("/", activityHandler.GetActivities)
+				r.Post("/", activityHandler.CreateActivity)
+				r.Get("/stats", activityHandler.GetActivitiesStats)
+				r.Get("/{id}", activityHandler.GetActivity)
+				r.Put("/{id}", activityHandler.UpdateActivity)
+				r.Delete("/{id}", activityHandler.DeleteActivity)
+				r.Get("/{id}/time", activityHandler.GetActivityTime)
+			})
+
+			// Time Entries
+			r.Route("/time-entries", func(r chi.Router) {
+				r.Post("/start", timeEntryHandler.StartTimer)
+				r.Post("/stop", timeEntryHandler.StopTimer)
+				r.Get("/active", timeEntryHandler.GetActiveTimer)
+				r.Delete("/{id}", timeEntryHandler.DeleteTimeEntry)
+			})
+
+			// Resume
+			r.Get("/resume", resumeHandler.GetResume)
+
+			// Rewards
+			r.Route("/rewards", func(r chi.Router) {
+				r.Get("/", rewardHandler.GetRewards)
+				r.Get("/status", rewardHandler.GetRewardStatus)
+				r.Post("/claim", rewardHandler.ClaimReward)
+			})
 		})
 	})
 

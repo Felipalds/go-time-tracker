@@ -7,7 +7,7 @@ import (
 
 	"github.com/Felipalds/go-pomodoro/models"
 	"go.uber.org/zap"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -17,9 +17,11 @@ var DB *gorm.DB
 func Initialize(logger *zap.Logger) error {
 	var err error
 
-	// Open SQLite database connection
-	// The database file will be created in the backend directory
-	DB, err = gorm.Open(sqlite.Open("timetracker.db"), &gorm.Config{})
+	// Build DSN from environment variables
+	dsn := buildDSN()
+	logger.Info("Connecting to PostgreSQL database...")
+
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		logger.Error("Failed to connect to database", zap.Error(err))
 		return fmt.Errorf("failed to connect to database: %w", err)
@@ -41,11 +43,41 @@ func Initialize(logger *zap.Logger) error {
 	return nil
 }
 
+// buildDSN constructs the PostgreSQL connection string from environment variables
+func buildDSN() string {
+	// Check for DATABASE_URL first (used by Render, Railway, etc.)
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		return dbURL
+	}
+
+	// Otherwise build from individual env vars with defaults for local dev
+	host := getEnv("DB_HOST", "localhost")
+	port := getEnv("DB_PORT", "5432")
+	user := getEnv("DB_USER", "timetracker")
+	password := getEnv("DB_PASSWORD", "timetracker123")
+	dbname := getEnv("DB_NAME", "timetracker")
+	sslmode := getEnv("DB_SSLMODE", "disable")
+
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		host, port, user, password, dbname, sslmode,
+	)
+}
+
+// getEnv gets an environment variable or returns a default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 // runMigrations runs GORM auto-migration for all models
 func runMigrations(logger *zap.Logger) error {
 	logger.Info("Running database migrations...")
 
 	err := DB.AutoMigrate(
+		&models.User{},
 		&models.Category{},
 		&models.Tag{},
 		&models.Activity{},

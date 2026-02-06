@@ -6,6 +6,7 @@ import "time"
 // EndTime is NULL when timer is still running
 type TimeEntry struct {
 	ID         uint       `gorm:"primaryKey" json:"id"`
+	UserID     uint       `gorm:"not null;index" json:"user_id"`
 	ActivityID uint       `gorm:"not null;index" json:"activity_id"`
 	Activity   Activity   `gorm:"foreignKey:ActivityID" json:"activity,omitempty"`
 	StartTime  time.Time  `gorm:"not null;index" json:"start_time"`

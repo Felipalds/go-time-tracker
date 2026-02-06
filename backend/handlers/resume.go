@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Felipalds/go-pomodoro/database"
+	"github.com/Felipalds/go-pomodoro/middleware"
 	"github.com/Felipalds/go-pomodoro/utils"
 	"go.uber.org/zap"
 )
@@ -30,6 +31,8 @@ type ResumeResponse struct {
 
 // GetResume returns the top 3 activities by time spent for a given period
 func (h *ResumeHandler) GetResume(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
+
 	period := r.URL.Query().Get("period")
 	if period == "" {
 		period = "week"
@@ -60,12 +63,13 @@ func (h *ResumeHandler) GetResume(w http.ResponseWriter, r *http.Request) {
 			activities.name as activity_name,
 			SUM(CASE
 				WHEN time_entries.end_time IS NOT NULL
-				THEN CAST((julianday(time_entries.end_time) - julianday(time_entries.start_time)) * 86400 AS INTEGER)
+				THEN EXTRACT(EPOCH FROM (time_entries.end_time - time_entries.start_time))::INTEGER
 				ELSE 0
 			END) as total_seconds,
 			COUNT(time_entries.id) as entry_count
 		`).
 		Joins("JOIN activities ON activities.id = time_entries.activity_id").
+		Where("time_entries.user_id = ?", userID).
 		Where("time_entries.start_time >= ? AND time_entries.start_time <= ?", startDate, endDate).
 		Where("time_entries.end_time IS NOT NULL").
 		Where("activities.deleted_at IS NULL").
@@ -86,11 +90,12 @@ func (h *ResumeHandler) GetResume(w http.ResponseWriter, r *http.Request) {
 		Select(`
 			SUM(CASE
 				WHEN time_entries.end_time IS NOT NULL
-				THEN CAST((julianday(time_entries.end_time) - julianday(time_entries.start_time)) * 86400 AS INTEGER)
+				THEN EXTRACT(EPOCH FROM (time_entries.end_time - time_entries.start_time))::INTEGER
 				ELSE 0
 			END) as total
 		`).
 		Joins("JOIN activities ON activities.id = time_entries.activity_id").
+		Where("time_entries.user_id = ?", userID).
 		Where("time_entries.start_time >= ? AND time_entries.start_time <= ?", startDate, endDate).
 		Where("time_entries.end_time IS NOT NULL").
 		Where("activities.deleted_at IS NULL").

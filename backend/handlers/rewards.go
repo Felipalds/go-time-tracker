@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Felipalds/go-pomodoro/database"
+	"github.com/Felipalds/go-pomodoro/middleware"
 	"github.com/Felipalds/go-pomodoro/models"
 	"github.com/Felipalds/go-pomodoro/services"
 	"github.com/Felipalds/go-pomodoro/utils"
@@ -17,6 +18,8 @@ type RewardHandler struct {
 
 // ClaimReward claims a reward for an activity
 func (h *RewardHandler) ClaimReward(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
+
 	var input struct {
 		ActivityID uint `json:"activity_id"`
 	}
@@ -26,9 +29,9 @@ func (h *RewardHandler) ClaimReward(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if activity exists
+	// Check if activity exists and belongs to user
 	var activity models.Activity
-	if err := database.DB.Where("id = ? AND deleted_at IS NULL", input.ActivityID).First(&activity).Error; err != nil {
+	if err := database.DB.Where("id = ? AND user_id = ? AND deleted_at IS NULL", input.ActivityID, userID).First(&activity).Error; err != nil {
 		utils.ErrorResponse(w, http.StatusNotFound, "Activity not found")
 		return
 	}
@@ -52,7 +55,7 @@ func (h *RewardHandler) ClaimReward(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate reward based on total minutes (affects drop rates)
-	result, err := services.GenerateReward(database.DB, h.DDService, totalMinutes)
+	result, err := services.GenerateReward(database.DB, h.DDService, userID, totalMinutes)
 	if err != nil || result == nil {
 		h.Logger.Error("Failed to generate reward", zap.Error(err))
 		utils.ErrorResponse(w, http.StatusInternalServerError, "Failed to generate reward")
@@ -61,6 +64,7 @@ func (h *RewardHandler) ClaimReward(w http.ResponseWriter, r *http.Request) {
 
 	// Save reward to database
 	reward := models.UserReward{
+		UserID:     userID,
 		RewardType: result.RewardType,
 		ExternalID: result.ExternalID,
 		Name:       result.Name,
@@ -99,17 +103,19 @@ func (h *RewardHandler) ClaimReward(w http.ResponseWriter, r *http.Request) {
 
 // GetRewards returns all user rewards and mastery info
 func (h *RewardHandler) GetRewards(w http.ResponseWriter, r *http.Request) {
-	// Get all rewards
+	userID := middleware.GetUserIDFromContext(r)
+
+	// Get all rewards for this user
 	var rewards []models.UserReward
-	if err := database.DB.Order("created_at DESC").Find(&rewards).Error; err != nil {
+	if err := database.DB.Where("user_id = ?", userID).Order("created_at DESC").Find(&rewards).Error; err != nil {
 		h.Logger.Error("Failed to fetch rewards", zap.Error(err))
 		utils.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch rewards")
 		return
 	}
 
-	// Get all mastery records
+	// Get all mastery records for this user
 	var mastery []models.ChampionMastery
-	if err := database.DB.Order("mastery_level DESC, times_obtained DESC").Find(&mastery).Error; err != nil {
+	if err := database.DB.Where("user_id = ?", userID).Order("mastery_level DESC, times_obtained DESC").Find(&mastery).Error; err != nil {
 		h.Logger.Error("Failed to fetch mastery", zap.Error(err))
 		utils.ErrorResponse(w, http.StatusInternalServerError, "Failed to fetch mastery")
 		return
@@ -137,7 +143,9 @@ func (h *RewardHandler) GetRewards(w http.ResponseWriter, r *http.Request) {
 
 // GetRewardStatus returns claimable rewards status
 func (h *RewardHandler) GetRewardStatus(w http.ResponseWriter, r *http.Request) {
-	activities, totalClaimable, err := services.GetAllClaimableRewards(database.DB)
+	userID := middleware.GetUserIDFromContext(r)
+
+	activities, totalClaimable, err := services.GetAllClaimableRewards(database.DB, userID)
 	if err != nil {
 		h.Logger.Error("Failed to get reward status", zap.Error(err))
 		utils.ErrorResponse(w, http.StatusInternalServerError, "Failed to get reward status")

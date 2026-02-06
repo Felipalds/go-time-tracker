@@ -5,3 +5,4 @@ export * from "./TimeEntry";
 export * from "./Reward";
 export * from "./ChampionMastery";
 export * from "./Resume";
+export * from "./User";

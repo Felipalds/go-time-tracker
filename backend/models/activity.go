@@ -6,6 +6,7 @@ import "time"
 // Supports soft delete via DeletedAt field
 type Activity struct {
 	ID                uint        `gorm:"primaryKey" json:"id"`
+	UserID            uint        `gorm:"not null;index" json:"user_id"`
 	Name              string      `gorm:"not null" json:"name"`
 	MainCategoryID    uint        `gorm:"not null;index" json:"main_category_id"`
 	MainCategory      Category    `gorm:"foreignKey:MainCategoryID" json:"main_category,omitempty"`
