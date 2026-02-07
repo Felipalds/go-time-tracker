@@ -9,7 +9,7 @@ export const useActivities = () => {
   return useQuery({
     queryKey: ["activities"],
     queryFn: () => activityService.getWithStats(),
-    select: (data) => data.activities,
+    select: (data) => data?.activities || [],
   });
 };
 

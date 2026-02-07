@@ -374,7 +374,7 @@ export const HomePage: React.FC = () => {
           </div>
 
           {/* Activities List */}
-          {activities.length > 0 && (
+          {activities && activities.length > 0 && (
             <div className="w-full">
               <h2 className="text-slate-400 mb-6 tracking-widest text-sm">
                 RECENT ACTIVITIES

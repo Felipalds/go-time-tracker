@@ -44,25 +44,29 @@ export const AuthPage = () => {
   const isSignup = mode === "signup";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <Card className="w-full max-w-md p-8 space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{
+      backgroundColor: '#030712',
+      backgroundImage: 'radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.15), transparent 25%), radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.15), transparent 25%)',
+      backgroundAttachment: 'fixed'
+    }}>
+      <Card className="w-full max-w-md p-8 space-y-6 !bg-white/[0.03] !border-white/[0.08] backdrop-blur-xl">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">TimeTracker</h1>
-          <p className="text-blue-400">Track time, earn rewards</p>
+          <h1 className="text-3xl font-bold text-slate-50">Legends Time Tracker</h1>
+          <p className="text-slate-400">Track time, earn rewards</p>
         </div>
 
         {/* Mode Toggle */}
-        <div className="flex gap-2 p-1 bg-gray-800 rounded-lg">
+        <div className="flex gap-2 p-1 bg-black/30 border border-white/[0.08] rounded-lg">
           <button
             type="button"
             onClick={() => {
               setMode("login");
               setError("");
             }}
-            className={`flex-1 py-2 rounded-md transition-colors ${
+            className={`flex-1 py-2 rounded-md transition-colors font-medium ${
               mode === "login"
-                ? "bg-blue-600 text-white"
-                : "text-gray-400 hover:text-gray-200"
+                ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white"
+                : "text-slate-400 hover:text-slate-200"
             }`}
           >
             Login
@@ -73,10 +77,10 @@ export const AuthPage = () => {
               setMode("signup");
               setError("");
             }}
-            className={`flex-1 py-2 rounded-md transition-colors ${
+            className={`flex-1 py-2 rounded-md transition-colors font-medium ${
               mode === "signup"
-                ? "bg-blue-600 text-white"
-                : "text-gray-400 hover:text-gray-200"
+                ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white"
+                : "text-slate-400 hover:text-slate-200"
             }`}
           >
             Sign Up
@@ -87,7 +91,7 @@ export const AuthPage = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {isSignup && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-slate-200 mb-1">
                 Name
               </label>
               <Input
@@ -97,12 +101,13 @@ export const AuthPage = () => {
                 placeholder="Your name"
                 required={isSignup}
                 autoComplete="name"
+                className="!bg-black/40 !border-white/10 !text-slate-50 placeholder:!text-slate-500 focus:!border-indigo-400/50 focus:!bg-black/50"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-200 mb-1">
               Email
             </label>
             <Input
@@ -112,11 +117,12 @@ export const AuthPage = () => {
               placeholder="your@email.com"
               required
               autoComplete="email"
+              className="!bg-black/40 !border-white/10 !text-slate-50 placeholder:!text-slate-500 focus:!border-indigo-400/50 focus:!bg-black/50"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-slate-200 mb-1">
               Password
             </label>
             <Input
@@ -127,9 +133,10 @@ export const AuthPage = () => {
               required
               minLength={6}
               autoComplete={isSignup ? "new-password" : "current-password"}
+              className="!bg-black/40 !border-white/10 !text-slate-50 placeholder:!text-slate-500 focus:!border-indigo-400/50 focus:!bg-black/50"
             />
             {isSignup && (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Minimum 6 characters
               </p>
             )}
@@ -150,7 +157,7 @@ export const AuthPage = () => {
           </Button>
         </form>
 
-        <div className="text-center text-sm text-gray-400">
+        <div className="text-center text-sm text-slate-400">
           {isSignup ? (
             <>
               Already have an account?{" "}
@@ -160,7 +167,7 @@ export const AuthPage = () => {
                   setMode("login");
                   setError("");
                 }}
-                className="text-blue-400 hover:text-blue-300"
+                className="text-indigo-400 hover:text-indigo-300 font-medium"
               >
                 Login
               </button>
@@ -174,7 +181,7 @@ export const AuthPage = () => {
                   setMode("signup");
                   setError("");
                 }}
-                className="text-blue-400 hover:text-blue-300"
+                className="text-indigo-400 hover:text-indigo-300 font-medium"
               >
                 Sign up
               </button>
