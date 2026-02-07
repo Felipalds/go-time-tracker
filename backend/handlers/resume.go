@@ -73,7 +73,7 @@ func (h *ResumeHandler) GetResume(w http.ResponseWriter, r *http.Request) {
 		Where("time_entries.start_time >= ? AND time_entries.start_time <= ?", startDate, endDate).
 		Where("time_entries.end_time IS NOT NULL").
 		Where("activities.deleted_at IS NULL").
-		Group("time_entries.activity_id").
+		Group("time_entries.activity_id, activities.name").
 		Order("total_seconds DESC").
 		Limit(3).
 		Scan(&activityTotals).Error
@@ -88,11 +88,11 @@ func (h *ResumeHandler) GetResume(w http.ResponseWriter, r *http.Request) {
 	var overallTotal int64
 	database.DB.Table("time_entries").
 		Select(`
-			SUM(CASE
+			COALESCE(SUM(CASE
 				WHEN time_entries.end_time IS NOT NULL
 				THEN EXTRACT(EPOCH FROM (time_entries.end_time - time_entries.start_time))::INTEGER
 				ELSE 0
-			END) as total
+			END), 0) as total
 		`).
 		Joins("JOIN activities ON activities.id = time_entries.activity_id").
 		Where("time_entries.user_id = ?", userID).
