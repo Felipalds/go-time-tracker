@@ -80,6 +80,10 @@ export const RewardCard: React.FC<RewardCardProps> = ({
   const shineIntensity =
     Math.min(Math.abs(rotation.x) + Math.abs(rotation.y), 20) / 20;
 
+  // Skins get a larger, landscape display
+  const isSkin = type === "skin";
+  const cardWidth = isSkin ? "w-[90vw] max-w-4xl" : "w-72";
+
   return (
     <div
       className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center"
@@ -98,7 +102,7 @@ export const RewardCard: React.FC<RewardCardProps> = ({
       >
         {/* Card */}
         <div
-          className={`relative w-72 rounded-2xl overflow-hidden border-2 ${colors.border} shadow-2xl ${colors.glow} transition-transform duration-75 ease-out`}
+          className={`relative ${cardWidth} rounded-2xl overflow-hidden border-2 ${colors.border} shadow-2xl ${colors.glow} transition-transform duration-75 ease-out`}
           style={{
             transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
             transformStyle: "preserve-3d",
@@ -120,43 +124,89 @@ export const RewardCard: React.FC<RewardCardProps> = ({
             }}
           />
 
-          {/* Card Header */}
-          <div className={`bg-gradient-to-r ${colors.gradient} p-3`}>
-            <h3 className="text-white font-bold text-lg truncate">{name}</h3>
-            <p className={`text-sm ${colors.text}`}>
-              {typeLabels[type] || type}
-            </p>
-          </div>
-
-          {/* Image */}
-          <div className="relative aspect-square bg-slate-900">
-            <img
-              src={imageUrl}
-              alt={name}
-              className="w-full h-full object-cover"
-            />
-
-            {/* Mastery Badge */}
-            {masteryLevel && masteryLevel > 0 && (
-              <div className="absolute bottom-2 right-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 font-bold text-sm px-2 py-1 rounded-lg shadow-lg">
-                M{masteryLevel}
+          {isSkin ? (
+            // Landscape layout for skins
+            <>
+              {/* Card Header */}
+              <div className={`bg-gradient-to-r ${colors.gradient} p-4`}>
+                <h3 className="text-white font-bold text-xl truncate">{name}</h3>
+                <p className={`text-sm ${colors.text}`}>
+                  {typeLabels[type] || type}
+                </p>
               </div>
-            )}
-          </div>
 
-          {/* Card Footer */}
-          <div className={`bg-gradient-to-r ${colors.gradient} p-3`}>
-            <div className="flex items-center justify-between">
-              <span className={`text-sm font-medium ${colors.text} capitalize`}>
-                {rarity}
-              </span>
-              {count > 1 && (
-                <span className="bg-white/20 text-white text-sm font-bold px-2 py-0.5 rounded">
-                  x{count}
-                </span>
-              )}
-            </div>
-          </div>
+              {/* Image - Landscape aspect ratio */}
+              <div className="relative bg-slate-900" style={{ aspectRatio: "16/9" }}>
+                <img
+                  src={imageUrl}
+                  alt={name}
+                  className="w-full h-full object-cover"
+                />
+
+                {/* Mastery Badge */}
+                {masteryLevel && masteryLevel > 0 && (
+                  <div className="absolute bottom-4 right-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 font-bold text-lg px-3 py-2 rounded-lg shadow-lg">
+                    M{masteryLevel}
+                  </div>
+                )}
+              </div>
+
+              {/* Card Footer */}
+              <div className={`bg-gradient-to-r ${colors.gradient} p-4`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium ${colors.text} capitalize`}>
+                    {rarity}
+                  </span>
+                  {count > 1 && (
+                    <span className="bg-white/20 text-white text-sm font-bold px-2 py-0.5 rounded">
+                      x{count}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            // Portrait layout for other types
+            <>
+              {/* Card Header */}
+              <div className={`bg-gradient-to-r ${colors.gradient} p-3`}>
+                <h3 className="text-white font-bold text-lg truncate">{name}</h3>
+                <p className={`text-sm ${colors.text}`}>
+                  {typeLabels[type] || type}
+                </p>
+              </div>
+
+              {/* Image */}
+              <div className="relative aspect-square bg-slate-900">
+                <img
+                  src={imageUrl}
+                  alt={name}
+                  className="w-full h-full object-cover"
+                />
+
+                {/* Mastery Badge */}
+                {masteryLevel && masteryLevel > 0 && (
+                  <div className="absolute bottom-2 right-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-900 font-bold text-sm px-2 py-1 rounded-lg shadow-lg">
+                    M{masteryLevel}
+                  </div>
+                )}
+              </div>
+
+              {/* Card Footer */}
+              <div className={`bg-gradient-to-r ${colors.gradient} p-3`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium ${colors.text} capitalize`}>
+                    {rarity}
+                  </span>
+                  {count > 1 && (
+                    <span className="bg-white/20 text-white text-sm font-bold px-2 py-0.5 rounded">
+                      x{count}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Rainbow border effect for epic */}
           {rarity === "epic" && (
