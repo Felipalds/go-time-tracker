@@ -33,7 +33,7 @@ export const DataSection: React.FC = () => {
 
     setIsStarting(true);
     try {
-      await startTimer.mutateAsync(activityId);
+      await startTimer.mutateAsync({ activityId, plannedDuration: null });
     } catch (err) {
       console.error("Failed to start timer:", err);
     } finally {

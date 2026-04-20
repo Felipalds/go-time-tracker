@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"os"
+
 	"github.com/Felipalds/go-pomodoro/handlers"
 	"github.com/Felipalds/go-pomodoro/middleware"
 	"github.com/Felipalds/go-pomodoro/services"
@@ -20,9 +22,16 @@ func SetupRoutes(logger *zap.Logger) *chi.Mux {
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 
-	// CORS
+	// CORS configuration
+	frontendURL := os.Getenv("FRONTEND_URL")
+	allowedOrigins := []string{"http://localhost:*", "http://127.0.0.1:*"}
+	if frontendURL != "" {
+		allowedOrigins = append(allowedOrigins, frontendURL)
+		logger.Info("CORS configured for production", zap.String("frontend_url", frontendURL))
+	}
+
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
@@ -94,6 +103,8 @@ func SetupRoutes(logger *zap.Logger) *chi.Mux {
 			// Time Entries
 			r.Route("/time-entries", func(r chi.Router) {
 				r.Post("/start", timeEntryHandler.StartTimer)
+				r.Post("/pause", timeEntryHandler.PauseTimer)
+				r.Post("/resume", timeEntryHandler.ResumeTimer)
 				r.Post("/stop", timeEntryHandler.StopTimer)
 				r.Get("/active", timeEntryHandler.GetActiveTimer)
 				r.Delete("/{id}", timeEntryHandler.DeleteTimeEntry)

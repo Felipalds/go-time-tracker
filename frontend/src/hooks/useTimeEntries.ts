@@ -14,7 +14,30 @@ export const useStartTimer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (activityId: number) => timeEntryService.start(activityId),
+    mutationFn: ({ activityId, plannedDuration }: { activityId: number; plannedDuration?: number | null }) =>
+      timeEntryService.start(activityId, plannedDuration),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["activeTimer"] });
+    },
+  });
+};
+
+export const usePauseTimer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => timeEntryService.pause(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["activeTimer"] });
+    },
+  });
+};
+
+export const useResumeTimer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => timeEntryService.resume(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["activeTimer"] });
     },
@@ -30,6 +53,18 @@ export const useStopTimer = () => {
       queryClient.invalidateQueries({ queryKey: ["activeTimer"] });
       queryClient.invalidateQueries({ queryKey: ["activities"] });
       queryClient.invalidateQueries({ queryKey: ["rewardStatus"] });
+    },
+  });
+};
+
+export const useDeleteTimer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => timeEntryService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["activeTimer"] });
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
     },
   });
 };

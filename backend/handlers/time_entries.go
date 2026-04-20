@@ -22,7 +22,8 @@ func (h *TimeEntryHandler) StartTimer(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserIDFromContext(r)
 
 	var input struct {
-		ActivityID uint `json:"activity_id"`
+		ActivityID      uint `json:"activity_id"`
+		PlannedDuration *int `json:"planned_duration,omitempty"` // Duration in seconds, nullable
 	}
 
 	if err := utils.DecodeJSON(r, &input); err != nil {
@@ -68,10 +69,11 @@ func (h *TimeEntryHandler) StartTimer(w http.ResponseWriter, r *http.Request) {
 
 	// Create new time entry
 	newEntry := models.TimeEntry{
-		UserID:     userID,
-		ActivityID: input.ActivityID,
-		StartTime:  time.Now(),
-		EndTime:    nil,
+		UserID:          userID,
+		ActivityID:      input.ActivityID,
+		StartTime:       time.Now(),
+		EndTime:         nil,
+		PlannedDuration: input.PlannedDuration, // NEW: store planned duration
 	}
 
 	if err := database.DB.Create(&newEntry).Error; err != nil {
@@ -96,6 +98,75 @@ func (h *TimeEntryHandler) StartTimer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.CreatedResponse(w, response)
+}
+
+// PauseTimer pauses the currently running timer
+func (h *TimeEntryHandler) PauseTimer(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
+
+	var activeTimer models.TimeEntry
+	err := database.DB.Where("user_id = ? AND end_time IS NULL", userID).First(&activeTimer).Error
+
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusNotFound, "No active timer found")
+		return
+	}
+
+	// Check if already paused
+	if activeTimer.PausedAt != nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, "Timer is already paused")
+		return
+	}
+
+	// Pause the timer
+	now := time.Now()
+	activeTimer.PausedAt = &now
+
+	if err := database.DB.Save(&activeTimer).Error; err != nil {
+		h.Logger.Error("Failed to pause timer", zap.Error(err))
+		utils.ErrorResponse(w, http.StatusInternalServerError, "Failed to pause timer")
+		return
+	}
+
+	utils.SuccessResponse(w, map[string]interface{}{
+		"status":    "paused",
+		"paused_at": activeTimer.PausedAt,
+	})
+}
+
+// ResumeTimer resumes a paused timer
+func (h *TimeEntryHandler) ResumeTimer(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r)
+
+	var activeTimer models.TimeEntry
+	err := database.DB.Where("user_id = ? AND end_time IS NULL", userID).First(&activeTimer).Error
+
+	if err != nil {
+		utils.ErrorResponse(w, http.StatusNotFound, "No active timer found")
+		return
+	}
+
+	// Check if timer is paused
+	if activeTimer.PausedAt == nil {
+		utils.ErrorResponse(w, http.StatusBadRequest, "Timer is not paused")
+		return
+	}
+
+	// Calculate pause duration and add to cumulative
+	pauseDuration := int(time.Since(*activeTimer.PausedAt).Seconds())
+	activeTimer.PausedDuration += pauseDuration
+	activeTimer.PausedAt = nil
+
+	if err := database.DB.Save(&activeTimer).Error; err != nil {
+		h.Logger.Error("Failed to resume timer", zap.Error(err))
+		utils.ErrorResponse(w, http.StatusInternalServerError, "Failed to resume timer")
+		return
+	}
+
+	utils.SuccessResponse(w, map[string]interface{}{
+		"status":          "running",
+		"paused_duration": activeTimer.PausedDuration,
+	})
 }
 
 // StopTimer stops the currently running timer
@@ -152,18 +223,36 @@ func (h *TimeEntryHandler) GetActiveTimer(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Calculate elapsed time
-	elapsed := utils.CalculateDuration(activeTimer.StartTime, time.Now())
+	// Calculate elapsed time (excluding paused time)
+	now := time.Now()
+	elapsed := int(now.Sub(activeTimer.StartTime).Seconds())
+
+	// Subtract cumulative pause duration
+	elapsed -= activeTimer.PausedDuration
+
+	// If currently paused, subtract current pause duration
+	if activeTimer.PausedAt != nil {
+		currentPauseDuration := int(now.Sub(*activeTimer.PausedAt).Seconds())
+		elapsed -= currentPauseDuration
+	}
+
+	// Ensure elapsed is never negative
+	if elapsed < 0 {
+		elapsed = 0
+	}
 
 	utils.SuccessResponse(w, map[string]interface{}{
 		"active_timer": map[string]interface{}{
-			"id":              activeTimer.ID,
-			"activity_id":     activeTimer.ActivityID,
-			"activity_name":   activeTimer.Activity.Name,
-			"start_time":      activeTimer.StartTime,
-			"elapsed_seconds": elapsed,
-			"elapsed":         utils.FormatDuration(elapsed),
-			"status":          "running",
+			"id":               activeTimer.ID,
+			"activity_id":      activeTimer.ActivityID,
+			"activity_name":    activeTimer.Activity.Name,
+			"start_time":       activeTimer.StartTime,
+			"elapsed_seconds":  elapsed,
+			"elapsed":          utils.FormatDuration(int64(elapsed)),
+			"planned_duration": activeTimer.PlannedDuration,
+			"paused_at":        activeTimer.PausedAt,
+			"paused_duration":  activeTimer.PausedDuration,
+			"status":           map[bool]string{true: "paused", false: "running"}[activeTimer.PausedAt != nil],
 		},
 	})
 }
